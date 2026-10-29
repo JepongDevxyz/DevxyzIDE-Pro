@@ -29,7 +29,7 @@
     app:layout_constraintBottom_toBottomOf="parent"
     app:layout_constraintEnd_toEndOf="parent"
     app:layout_constraintStart_toStartOf="parent"
-    app:layout_constraintTop_toBottomOf="@id/ide_version" />
+    app:layout_constraintTop_toBottomOf="@id/disclaimer" />
 
   <com.google.android.material.imageview.ShapeableImageView
     android:id="@+id/icon"
@@ -67,6 +67,20 @@
     app:layout_constraintStart_toStartOf="parent"
     app:layout_constraintTop_toBottomOf="@id/description"
     tools:text="v2.6.1-beta for arm64 (dev/offcial)" />
+
+  <com.google.android.material.textview.MaterialTextView
+    android:id="@+id/disclaimer"
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="8dp"
+    android:paddingStart="@dimen/content_padding"
+    android:paddingEnd="@dimen/content_padding"
+    android:gravity="center"
+    android:text="@string/about_disclaimer"
+    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+    app:layout_constraintEnd_toEndOf="parent"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintTop_toBottomOf="@id/ide_version" />
 
   <com.google.android.material.textview.MaterialTextView
     android:id="@+id/title"

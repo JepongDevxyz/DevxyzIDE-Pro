@@ -37,8 +37,7 @@ public class BaseApplication extends Application {
   public static final String NOTIFICATION_GRADLE_BUILD_SERVICE = "17571";
   public static final String TELEGRAM_GROUP_URL = "https://t.me/androidide_discussions";
   public static final String TELEGRAM_CHANNEL_URL = "https://t.me/AndroidIDEOfficial";
-  public static final String SPONSOR_URL = BuildInfo.PROJECT_SITE + "/donate";
-  public static final String DOCS_URL = "https://docs.androidide.com";
+  public static final String DOCS_URL = "https://github.com/JepongDevxyz/DevxyzIDE-Pro";
   public static final String CONTRIBUTOR_GUIDE_URL =
       BuildInfo.REPO_URL + "/blob/dev/CONTRIBUTING.md";
   public static final String EMAIL = "contact@androidide.com";
@@ -90,10 +89,6 @@ public class BaseApplication extends Application {
 
   public void openWebsite() {
     openUrl(BuildInfo.PROJECT_SITE);
-  }
-
-  public void openDonationsPage() {
-    openUrl(SPONSOR_URL);
   }
 
   public void openDocs() {

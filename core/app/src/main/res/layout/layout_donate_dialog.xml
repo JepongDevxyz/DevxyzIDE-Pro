@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~  This file is part of DevxyzIDE.
+  ~
+  ~  DevxyzIDE is free software: you can redistribute it and/or modify
+  ~  it under the terms of the GNU General Public License as published by
+  ~  the Free Software Foundation, either version 3 of the License, or
+  ~  (at your option) any later version.
+  ~
+  ~  DevxyzIDE is distributed in the hope that it will be useful,
+  ~  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~  GNU General Public License for more details.
+  ~
+  ~  You should have received a copy of the GNU General Public License
+  ~   along with DevxyzIDE.  If not, see <https://www.gnu.org/licenses/>.
+  -->
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:layout_width="match_parent"
+  android:layout_height="wrap_content"
+  android:orientation="vertical"
+  android:padding="24dp">
+
+  <com.google.android.material.textview.MaterialTextView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center"
+    android:text="@string/donate_support_title"
+    android:textAppearance="@style/TextAppearance.Material3.TitleLarge" />
+
+  <com.google.android.material.textview.MaterialTextView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="8dp"
+    android:gravity="center"
+    android:text="@string/donate_message"
+    android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+  <ImageView
+    android:layout_width="264dp"
+    android:layout_height="264dp"
+    android:layout_gravity="center_horizontal"
+    android:layout_marginTop="16dp"
+    android:contentDescription="@string/donate_qr_description"
+    android:src="@drawable/donate_qr" />
+
+  <com.google.android.material.textview.MaterialTextView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="16dp"
+    android:gravity="center"
+    android:text="@string/donate_account_bank"
+    android:textAppearance="@style/TextAppearance.Material3.TitleSmall" />
+
+  <com.google.android.material.textview.MaterialTextView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="4dp"
+    android:gravity="center"
+    android:text="@string/donate_account_name"
+    android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+  <com.google.android.material.textview.MaterialTextView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="2dp"
+    android:gravity="center"
+    android:text="@string/donate_account_number"
+    android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+
+  <com.google.android.material.button.MaterialButton
+    android:id="@+id/close"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="24dp"
+    android:text="@string/btn_close" />
+
+</LinearLayout>
