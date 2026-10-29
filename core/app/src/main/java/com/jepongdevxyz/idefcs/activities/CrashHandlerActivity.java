@@ -26,7 +26,7 @@ import com.jepongdevxyz.idefcs.fragments.CrashReportFragment;
 
 public class CrashHandlerActivity extends IDEActivity {
 
-  public static final String REPORT_ACTION = "com.jepongdevxyz.ide.REPORT_CRASH";
+  public static final String REPORT_ACTION = "com.jepongdevxyz.pro.REPORT_CRASH";
   public static final String TRACE_KEY = "crash_trace";
   private ActivityCrashHandlerBinding binding;
 

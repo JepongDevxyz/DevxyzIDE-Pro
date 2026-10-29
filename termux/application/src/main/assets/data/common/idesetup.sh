@@ -396,7 +396,7 @@ fi
 print_info "Update packages..."
 
 # DevxyzIDE baked-in apt safety net
-PREFIX="${PREFIX:-/data/data/com.jepongdevxyz.ide/files/usr}"
+PREFIX="${PREFIX:-/data/data/com.jepongdevxyz.pro/files/usr}"
 mkdir -p "$PREFIX/var/lib/apt/lists" "$PREFIX/etc/apt"
 if [ ! -e "$PREFIX/etc/aptt" ]; then
   ln -s "$PREFIX/etc/apt" "$PREFIX/etc/aptt" || true

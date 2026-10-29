@@ -47,8 +47,8 @@ class LogReceiverService : Service() {
 
     private val log = LoggerFactory.getLogger(LogReceiverService::class.java)
 
-    internal const val ACTION_CONNECT_LOG_CONSUMER = "com.jepongdevxyz.ide.logrecevier.CONNECT_LOG_CONSUMER"
-    internal const val ACTION_CONNECTION_UPDATE = "com.jepongdevxyz.ide.logreceiver.CONNECTION_UPDATE"
+    internal const val ACTION_CONNECT_LOG_CONSUMER = "com.jepongdevxyz.pro.logrecevier.CONNECT_LOG_CONSUMER"
+    internal const val ACTION_CONNECTION_UPDATE = "com.jepongdevxyz.pro.logreceiver.CONNECTION_UPDATE"
 
     private const val LOG_CONSUMER_WAIT_DURATION = 10 // seconds
 

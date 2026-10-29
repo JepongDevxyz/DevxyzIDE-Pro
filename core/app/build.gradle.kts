@@ -46,7 +46,7 @@ android {
   namespace = BuildConfig.packageName
 
   defaultConfig {
-    applicationId = "com.jepongdevxyz.ide"
+    applicationId = "com.jepongdevxyz.pro"
     vectorDrawables.useSupportLibrary = true
   }
 

@@ -31,8 +31,8 @@ data class ConnectionObserverParams(val clientId: String, val totalConnections: 
 
   companion object {
 
-    const val KEY_CLIENT_ID = "com.jepongdevxyz.ide.logreceiver.connectedClientId"
-    const val KEY_CONNECTION_COUNT = "com.jepongdevxyz.ide.logreceiver.connectionCount"
+    const val KEY_CLIENT_ID = "com.jepongdevxyz.pro.logreceiver.connectedClientId"
+    const val KEY_CONNECTION_COUNT = "com.jepongdevxyz.pro.logreceiver.connectionCount"
 
     @JvmStatic
     internal fun from(intent: Intent?): ConnectionObserverParams? {

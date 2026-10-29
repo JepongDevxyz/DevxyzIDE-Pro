@@ -66,11 +66,11 @@ class TerminalBootstrapPackagesPlugin : Plugin<Project> {
     private const val OLD_TERMUX_PREFIX = "/data/data/com.itsaky.androidide"
 
     // New install prefix (31 bytes). This must match applicationId
-    // (com.jepongdevxyz.ide), NOT BuildConfig.packageName (com.jepongdevxyz.idefcs).
-    private const val NEW_TERMUX_PREFIX = "/data/data/com.jepongdevxyz.ide"
+    // (com.jepongdevxyz.pro), NOT BuildConfig.packageName (com.jepongdevxyz.idefcs).
+    private const val NEW_TERMUX_PREFIX = "/data/data/com.jepongdevxyz.pro"
 
     private const val OLD_PACKAGE_NAME = "com.itsaky.androidide"
-    private const val NEW_PACKAGE_NAME = "com.jepongdevxyz.ide"
+    private const val NEW_PACKAGE_NAME = "com.jepongdevxyz.pro"
   }
 
   override fun apply(target: Project) {

@@ -248,7 +248,7 @@ public final class TermuxInstaller {
                                 }
                                 StringBuilder aptConf = new StringBuilder();
                                 aptConf.append("# DevxyzIDE baked-in apt config\n");
-                                aptConf.append("Dir::Etc \"/data/data/com.jepongdevxyz.ide/files/usr/etc/apt\";\n");
+                                aptConf.append("Dir::Etc \"/data/data/com.jepongdevxyz.pro/files/usr/etc/apt\";\n");
                                 aptConf.append("Dir::Etc::sourcelist \"sources.list\";\n");
                                 aptConf.append("Dir::Etc::sourceparts \"sources.list.d\";\n");
                                 aptConf.append("Dir::Etc::parts \"apt.conf.d\";\n");
@@ -259,24 +259,24 @@ public final class TermuxInstaller {
                                 aptConf.append("Dir::Etc::netrc \"auth.conf\";\n");
                                 aptConf.append("Dir::Etc::netrcparts \"auth.conf.d\";\n");
                                 aptConf.append("Dir::Etc::main \"apt.conf\";\n");
-                                aptConf.append("Dir::State \"/data/data/com.jepongdevxyz.ide/files/usr/var/lib/apt\";\n");
+                                aptConf.append("Dir::State \"/data/data/com.jepongdevxyz.pro/files/usr/var/lib/apt\";\n");
                                 aptConf.append("Dir::State::lists \"lists/\";\n");
-                                aptConf.append("Dir::State::status \"/data/data/com.jepongdevxyz.ide/files/usr/var/lib/dpkg/status\";\n");
+                                aptConf.append("Dir::State::status \"/data/data/com.jepongdevxyz.pro/files/usr/var/lib/dpkg/status\";\n");
                                 aptConf.append("Dir::State::extended_states \"extended_states\";\n");
-                                aptConf.append("Dir::Cache \"/data/data/com.jepongdevxyz.ide/cache/apt\";\n");
+                                aptConf.append("Dir::Cache \"/data/data/com.jepongdevxyz.pro/cache/apt\";\n");
                                 aptConf.append("Dir::Cache::archives \"archives/\";\n");
                                 aptConf.append("Dir::Cache::pkgcache \"pkgcache.bin\";\n");
                                 aptConf.append("Dir::Cache::srcpkgcache \"srcpkgcache.bin\";\n");
-                                aptConf.append("Dir::Bin::dpkg \"/data/data/com.jepongdevxyz.ide/files/usr/bin/dpkg\";\n");
-                                aptConf.append("Dir::Bin::gzip \"/data/data/com.jepongdevxyz.ide/files/usr/bin/gzip\";\n");
-                                aptConf.append("Dir::Bin::bzip2 \"/data/data/com.jepongdevxyz.ide/files/usr/bin/bzip2\";\n");
-                                aptConf.append("Dir::Bin::xz \"/data/data/com.jepongdevxyz.ide/files/usr/bin/xz\";\n");
-                                aptConf.append("Dir::Bin::lz4 \"/data/data/com.jepongdevxyz.ide/files/usr/bin/lz4\";\n");
-                                aptConf.append("Dir::Bin::zstd \"/data/data/com.jepongdevxyz.ide/files/usr/bin/zstd\";\n");
-                                aptConf.append("Dir::Bin::lzma \"/data/data/com.jepongdevxyz.ide/files/usr/bin/lzma\";\n");
-                                aptConf.append("Dir::Bin::methods \"/data/data/com.jepongdevxyz.ide/files/usr/lib/apt/methods\";\n");
-                                aptConf.append("Dir::Bin::solvers \"/data/data/com.jepongdevxyz.ide/files/usr/lib/apt/solvers\";\n");
-                                aptConf.append("Dir::Bin::planners \"/data/data/com.jepongdevxyz.ide/files/usr/lib/apt/planners\";\n");
+                                aptConf.append("Dir::Bin::dpkg \"/data/data/com.jepongdevxyz.pro/files/usr/bin/dpkg\";\n");
+                                aptConf.append("Dir::Bin::gzip \"/data/data/com.jepongdevxyz.pro/files/usr/bin/gzip\";\n");
+                                aptConf.append("Dir::Bin::bzip2 \"/data/data/com.jepongdevxyz.pro/files/usr/bin/bzip2\";\n");
+                                aptConf.append("Dir::Bin::xz \"/data/data/com.jepongdevxyz.pro/files/usr/bin/xz\";\n");
+                                aptConf.append("Dir::Bin::lz4 \"/data/data/com.jepongdevxyz.pro/files/usr/bin/lz4\";\n");
+                                aptConf.append("Dir::Bin::zstd \"/data/data/com.jepongdevxyz.pro/files/usr/bin/zstd\";\n");
+                                aptConf.append("Dir::Bin::lzma \"/data/data/com.jepongdevxyz.pro/files/usr/bin/lzma\";\n");
+                                aptConf.append("Dir::Bin::methods \"/data/data/com.jepongdevxyz.pro/files/usr/lib/apt/methods\";\n");
+                                aptConf.append("Dir::Bin::solvers \"/data/data/com.jepongdevxyz.pro/files/usr/lib/apt/solvers\";\n");
+                                aptConf.append("Dir::Bin::planners \"/data/data/com.jepongdevxyz.pro/files/usr/lib/apt/planners\";\n");
                                 try (FileOutputStream out = new FileOutputStream(new File(TERMUX_PREFIX_DIR_PATH + "/etc/apt/apt.conf"))) { out.write(aptConf.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8)); } catch (Exception ignored) {}
                                 try { new File(activity.getCacheDir(), "apt").mkdirs(); } catch (Exception ignored) {}
                 } catch (Exception e) { Logger.logInfo(LOG_TAG, "Failed to apply baked-in apt fixes: " + e.getMessage()); }
