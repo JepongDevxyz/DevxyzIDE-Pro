@@ -112,7 +112,7 @@ class CrashReportFragment : Fragment() {
   }
 
   private fun reportTrace(report: String) {
-    ClipboardUtils.copyText("DevxyzIDE CrashLog", report)
+    ClipboardUtils.copyText("DevxyzIDE Pro CrashLog", report)
     val url = BuildInfo.REPO_URL + "/issues"
     val intent = Intent()
     intent.action = Intent.ACTION_VIEW

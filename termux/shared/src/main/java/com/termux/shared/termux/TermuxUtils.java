@@ -359,10 +359,10 @@ public class TermuxUtils {
         markdownString.append("\n\n### Email\n");
         markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(TermuxConstants.TERMUX_SUPPORT_EMAIL_URL, TermuxConstants.TERMUX_SUPPORT_EMAIL_MAILTO_URL)).append("  ");
 
-        markdownString.append("\n\n### GitHub Issues for DevxyzIDE apps\n");
+        markdownString.append("\n\n### GitHub Issues for DevxyzIDE Pro apps\n");
         markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(TermuxConstants.TERMUX_APP_NAME, TermuxConstants.TERMUX_GITHUB_ISSUES_REPO_URL)).append("  ");
 
-        markdownString.append("\n\n### GitHub Issues for DevxyzIDE Terminal packages\n");
+        markdownString.append("\n\n### GitHub Issues for DevxyzIDE Pro Terminal packages\n");
         markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(TermuxConstants.TERMUX_PACKAGES_GITHUB_REPO_NAME, TermuxConstants.TERMUX_PACKAGES_GITHUB_ISSUES_REPO_URL)).append("  ");
 
         markdownString.append("\n##\n");

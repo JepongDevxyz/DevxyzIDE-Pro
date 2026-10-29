@@ -16,6 +16,6 @@
   -->
 
 <resources>
-  <string name="msg_bind_service_failed">Failed to bind to DevxyzIDE</string>
+  <string name="msg_bind_service_failed">Failed to bind to DevxyzIDE Pro</string>
   <string name="notification_action_exit">Exit</string>
 </resources>

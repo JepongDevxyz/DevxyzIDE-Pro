@@ -44,7 +44,7 @@ public class LogSenderService extends Service {
   private static final int NOTIFICATION_ID = 644;
   private static final String NOTIFICATION_CHANNEL_NAME = "LogSender Service";
   private static final String NOTIFICATION_TITLE = "LogSender Service";
-  private static final String NOTIFICATION_TEXT = "Connected to DevxyzIDE";
+  private static final String NOTIFICATION_TEXT = "Connected to DevxyzIDE Pro";
   private static final String NOTIFICATION_CHANNEL_ID = "ide.logsender.service";
   public static final String ACTION_START_SERVICE = "ide.logsender.service.start";
   public static final String ACTION_STOP_SERVICE = "ide.logsender.service.stop";

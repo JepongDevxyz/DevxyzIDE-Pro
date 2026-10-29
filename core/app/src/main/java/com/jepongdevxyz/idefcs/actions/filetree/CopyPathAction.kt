@@ -36,7 +36,7 @@ class CopyPathAction(context: Context, override val order: Int) :
 
   override suspend fun execAction(data: ActionData) {
     val file = data.requireFile()
-    ClipboardUtils.copyText("[DevxyzIDE] Copied File Path", file.absolutePath)
+    ClipboardUtils.copyText("[DevxyzIDE Pro] Copied File Path", file.absolutePath)
     flashSuccess(R.string.copied)
   }
 }

@@ -9,7 +9,7 @@
   <string name="about_footer">أندرويد %1$s لـ %2$s</string>
   <string name="about_subtitle">ببساطة، منصة بناء تطبيقات للاندرويد</string>
   <string name="msg_get_package_failed">فشل في استخراج اسم الحزمة!</string>
-  <string name="msg_need_help">إذا كنت تواجه مشكلات أثناء استخدام DevxyzIDE أو مع بناء التطبيقات ، يمكنك الانضمام إلى مجموعة التيليغرام وطلب المساعدة هناك.\n\nيمكنك أيضًا إرسال ملاحظات متضمنة على بريدنا الإلكتروني.</string>
+  <string name="msg_need_help">إذا كنت تواجه مشكلات أثناء استخدام DevxyzIDE Pro أو مع بناء التطبيقات ، يمكنك الانضمام إلى مجموعة التيليغرام وطلب المساعدة هناك.\n\nيمكنك أيضًا إرسال ملاحظات متضمنة على بريدنا الإلكتروني.</string>
   <string name="need_help">تحتاج للمساعدة؟</string>
   <string name="ide_preferences">إعدادات IDE</string>
   <string name="discussions_on_telegram">المناقشات على التيليغرام</string>
@@ -37,7 +37,7 @@
   <string name="please_wait">رجاءا انتظر لحظة…</string>
   <!-- Project Builder -->
   <string name="title_unsupported_device">هذا الجهاز غير مدعوم</string>
-  <string name="msg_unsupported_device">أنت تستخدم نسخة %1$s من DevxyzIDE على جهاز يعمل فقط بـ %2$s. هذه التكوينات غير معتمدة. يرجى تثبيت نسخة %2$s من DevxyzIDE.</string>
+  <string name="msg_unsupported_device">أنت تستخدم نسخة %1$s من DevxyzIDE Pro على جهاز يعمل فقط بـ %2$s. هذه التكوينات غير معتمدة. يرجى تثبيت نسخة %2$s من DevxyzIDE Pro.</string>
   <string name="title_clear_output">مسح المخرجات</string>
   <string name="build_output">مخرجات البناء</string>
   <string name="quick_run_debug">تشغيل سريع</string>
@@ -48,7 +48,7 @@
   <string name="run">تشغيل</string>
   <!-- Project -->
   <string name="title_first_build">أول بناء</string>
-  <string name="msg_first_build">هذه هي المرة الأولى التي يتم فيها البناء بعد تثبيت DevxyzIDE. يستغرق البناء الأول عادة وقتاً بينما يقوم تنزيل Gradle بتحميل جميع التبعيات والإضافات. قد تستغرق هذه العملية حوالي 10 - 15 دقيقة. لكن هذا يعتمد كلياً على اتصال الشبكة الخاصة بك.\n\nالرجاء التحلي بالصبر…</string>
+  <string name="msg_first_build">هذه هي المرة الأولى التي يتم فيها البناء بعد تثبيت DevxyzIDE Pro. يستغرق البناء الأول عادة وقتاً بينما يقوم تنزيل Gradle بتحميل جميع التبعيات والإضافات. قد تستغرق هذه العملية حوالي 10 - 15 دقيقة. لكن هذا يعتمد كلياً على اتصال الشبكة الخاصة بك.\n\nالرجاء التحلي بالصبر…</string>
   <string name="create_project">إنشاء مشروع</string>
   <string name="minimum_sdk">الحد الأدنى من SDK</string>
   <string name="new_project">مشروع جديد</string>
@@ -137,7 +137,7 @@
   <string name="redo">إعادة</string>
   <!-- Preferences -->
   <string name="title_change_text_size">حجم خط المحرر</string>
-  <string name="idepref_about_title">حول DevxyzIDE</string>
+  <string name="idepref_about_title">حول DevxyzIDE Pro</string>
   <string name="idepref_build_clearCache_title">مسح جميع ذاكرة التخزين المؤقت</string>
   <string name="idepref_build_clearCache_summary">مسح دليل ذاكرة التخزين المؤقت. سيؤدي هذا إلى حذف جميع التبعيات التي تم تحميلها بواسطة Gradle. سيتم تحميل الملفات المطلوبة مرة أخرى في النسخة التالية.</string>
   <string name="idepref_build_customgradlecommands_title">أوامر Gradle الإضافية</string>
@@ -175,7 +175,7 @@
   <string name="msg_generate_xml_failed">فشل في إنشاء كود XML</string>
   <string name="title_generating_xml">إنشاء كود XML</string>
   <string name="msg_swipe_up">مرر لأعلى للإخراج والسجلات والمزيد.</string>
-  <string name="msg_ide_crashed">تحطم DevxyzIDE</string>
+  <string name="msg_ide_crashed">تحطم DevxyzIDE Pro</string>
   <string name="msg_report_crash">الرجاء فتح مشكلة على github مع المكونات التالية:</string>
   <string name="msg_crash_report_hint">انقر على الزر أدناه لنسخ السجل وفتح صفحة المشكلات.</string>
   <string name="msg_copy_report_action">نسخ وتقرير</string>
@@ -241,11 +241,11 @@
   <string name="idepref_buildnrun_summary">تكوين بناء Gradle.</string>
   <string name="configure">تهيئة</string>
   <string name="about">عن التطبيق</string>
-  <string name="idepref_github_summary">DevxyzIDE مفتوح المصدر!</string>
+  <string name="idepref_github_summary">DevxyzIDE Pro مفتوح المصدر!</string>
   <string name="idepref_channel_summary">اشترك للحصول على أحدث تحديثات.</string>
   <string name="idepref_group_summary">مناقشة الميزات، الأخطاء والتحسينات هنا.</string>
   <string name="idepref_changelog_summary">ما الجديد في هذا الإصدار؟ </string>
-  <string name="idepref_about_summary">المزيد عن DevxyzIDE.</string>
+  <string name="idepref_about_summary">المزيد عن DevxyzIDE Pro.</string>
   <string name="idepref_general_summary">إعدادات IDE العامة.</string>
   <string name="idepref_editor_summary">تهيئة المحرر.</string>
   <string name="idepref_xml_trimFinalNewLine_title">تقليم السطر الجديد النهائي</string>
@@ -284,7 +284,7 @@
   <string name="idepref_customFont_summary">في حالة التمكين، سيتم استخدام الملف الموجود على \"/data/com.jepongdevxyz.idefcs/files/home/.devxyzide/ui/font.ttf\" كخط محرر.</string>
   <string name="msg_installing_apk">تثبيت APK...</string>
   <string name="msg_action_open_application">هل تريد فتح التطبيق؟</string>
-  <string name="title_gradle_service_notification_channel">خدمة بناء DevxyzIDE</string>
+  <string name="title_gradle_service_notification_channel">خدمة بناء DevxyzIDE Pro</string>
   <string name="msg_hex_color_code">رمز اللون Hex</string>
   <string name="msg_color_picker_pick">انتقاء</string>
   <string name="msg_chmod_exec">إعداد أذونات قابلة للتنفيذ…</string>
@@ -355,7 +355,7 @@
   <string name="uiMode_dark">مظلم</string>
   <string name="uiMode_system">اتبع النظام</string>
   <string name="idepref_general_themeSelector_title">سمة</string>
-  <string name="idepref_general_themeSelector_summary">اختر سمة لـ DevxyzIDE (تتطلب إعادة التشغيل).</string>
+  <string name="idepref_general_themeSelector_summary">اختر سمة لـ DevxyzIDE Pro (تتطلب إعادة التشغيل).</string>
   <string name="idepref_general_projectConfig">تهيئة المشروع</string>
   <string name="msg_app_launch_failed">فشل التشغيل. يجب تثبيت التطبيق أولاً.</string>
   <string name="idepref_java_diagnosticEnabled_title">التشخيصات مفعلة</string>
@@ -373,7 +373,7 @@
   <string name="msg_no_unresolved_classes">لم يتم العثور على أسماء الكلاس</string>
   <string name="title_class_chooser">أي %1$s؟</string>
   <string name="permlab_bind_logger_service">ربط بخدمة التسجيل</string>
-  <string name="permdesc_bind_logger_service">السماح لهذا التطبيق بربطه مع خدمة تسجيل اللوغ لـ DevxyzIDE. هذا الامر مطلوب لـ DevxyzIDE لقراءة السجلات (اللوغ) لهذا التطبيق.</string>
+  <string name="permdesc_bind_logger_service">السماح لهذا التطبيق بربطه مع خدمة تسجيل اللوغ لـ DevxyzIDE Pro. هذا الامر مطلوب لـ DevxyzIDE Pro لقراءة السجلات (اللوغ) لهذا التطبيق.</string>
   <string name="wizard_module_name">اسم الإضافة</string>
   <string name="wizard_module_type">نوع الإضافة</string>
   <string name="msg_invalid_module_name">أسم إضافة غير صالح</string>
@@ -400,10 +400,10 @@
   <string name="title_android_version">اصدار الاندرويد</string>
   <string name="btn_opt_in">الاشتراك</string>
   <string name="title_developer_options">خيارات المطور</string>
-  <string name="idepref_devOptions_summary">خيارات تجريبية/تصحيح أخطاء DevxyzIDE</string>
+  <string name="idepref_devOptions_summary">خيارات تجريبية/تصحيح أخطاء DevxyzIDE Pro</string>
   <string name="idepref_group_debugging">تصحيح الأخطاء</string>
   <string name="idepref_devOptions_dumpLogs_title">تفريغ السجلات</string>
-  <string name="idepref_devOptions_dumpLogs_summary">تفريغ سجلات DevxyzIDE إلى $HOME/.devxyzide/logs</string>
+  <string name="idepref_devOptions_dumpLogs_summary">تفريغ سجلات DevxyzIDE Pro إلى $HOME/.devxyzide/logs</string>
   <string name="msg_emptyview_applogs">قم بتشغيل النسخة التصحيحية (debug) من تطبيقك لعرض السجلات هنا.</string>
   <string name="msg_logsender_disabled">تم تعطيل إرسال السجل. يمكنك تمكينه في الخيارات.</string>
   <string name="msg_emptyview_idelogs">تظهر سجلات من بيئة التطوير المتكاملة هنا.</string>
@@ -411,7 +411,7 @@
   <string name="msg_emptyview_buildoutput">"قم ببناء التطبيق أو تشغيل مهمة لرؤية نتائج بنائه هنا. "</string>
   <string name="msg_codeaction_failed">فشلت في تنفيذ الإجراء.</string>
   <string name="idepref_devOptions_enableLogsender_title">تمكين مرسل السجلات.</string>
-  <string name="idepref_devOptions_enableLogsender_summary">عند التعطيل، لن يتم عرض سجلات التطبيقات في DevxyzIDE.</string>
+  <string name="idepref_devOptions_enableLogsender_summary">عند التعطيل، لن يتم عرض سجلات التطبيقات في DevxyzIDE Pro.</string>
   <string name="title_build_variants">Build variants</string>
   <string name="title_apply">Apply</string>
   <string name="title_discard">Discard</string>
@@ -429,14 +429,14 @@
   <string name="msg_launch_failure_no_app_module">Cannot run application. No application modules found in project.</string>
   <string name="title_launch_app">Launch app</string>
   <string name="title_experiment_flavor">Experimental</string>
-  <string name="msg_experimental_flavor">You are using %1$s variant of DevxyzIDE on a %2$s device. This configuration may work, but it\'ll result in reduced performance and possible security vulnerabilities. Please avoid using this configuration whenever possible.</string>
+  <string name="msg_experimental_flavor">You are using %1$s variant of DevxyzIDE Pro on a %2$s device. This configuration may work, but it\'ll result in reduced performance and possible security vulnerabilities. Please avoid using this configuration whenever possible.</string>
   <string name="idepref_editor_pinLineNumbers_title">Pin line numbers</string>
   <string name="idepref_editor_pinLineNumbers_summary">Whether the editor should pin line number panel when scrolled horizontally.</string>
   <string name="theme_blue_wave">Blue Wave</string>
   <string name="theme_sunny_glow">Sunny Glow</string>
   <string name="theme_material_you">Material You</string>
   <string name="idepref_general_localeSelector_title">Language</string>
-  <string name="idepref_general_localeSelector_summary">Select a language for DevxyzIDE.</string>
+  <string name="idepref_general_localeSelector_summary">Select a language for DevxyzIDE Pro.</string>
   <string name="locale_system_default">System Default</string>
   <string name="msg_project_dir_inaccessible">Project directory is not accessible</string>
   <string name="msg_file_is_not_dir">Selected file is not a directory</string>
@@ -450,10 +450,10 @@
   <string name="title_grant">Grant</string>
   <string name="permission_title_storage">Storage</string>
   <string name="permission_desc_storage">Required to access project files.</string>
-  <string name="permission_desc_install_packages">Allow installing APKs built with DevxyzIDE.</string>
+  <string name="permission_desc_install_packages">Allow installing APKs built with DevxyzIDE Pro.</string>
   <string name="permission_title_install_packages">Install packages</string>
   <string name="onboarding_title_permissions">Permissions</string>
-  <string name="onboarding_subtitle_permissions">DevxyzIDE requires the following permissions</string>
+  <string name="onboarding_subtitle_permissions">DevxyzIDE Pro requires the following permissions</string>
   <string name="msg_grant_permissions">Please grant the permissions to continue.</string>
   <string name="msg_no_internet">It seems you\'re offline. Check your internet connection.</string>
   <string name="msg_connected_to_cellular">Heads up! You\'re using cellular data.</string>
@@ -476,7 +476,7 @@
   <string name="title_crowdin_translators">Crowdin Translators</string>
   <string name="title_misc">Misc</string>
   <string name="title_contribute">Contribute</string>
-  <string name="summary_contribute">It\'s not just an IDE, it\'s a community. Contribute code, ideas, and passion to DevxyzIDE.</string>
+  <string name="summary_contribute">It\'s not just an IDE, it\'s a community. Contribute code, ideas, and passion to DevxyzIDE Pro.</string>
   <string name="msg_app_unavailable_for_intent">No application available to handle intent.</string>
   <string name="title_open_source_licenses">Open source licenses</string>
   <string name="summary_open_source_licenses">View open source licenses.</string>
