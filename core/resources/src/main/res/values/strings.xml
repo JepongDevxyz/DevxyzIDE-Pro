@@ -524,7 +524,7 @@
   <string name="msg_install_tools">The development tools must be installed for the IDE to work. Clicking the done button will open terminal to install the tools. To install, follow the instructions <![CDATA[ <a href="https://docs.androidide.com/tutorials/get-started.html">here</a>.<br/><br/>Or read the <a href="https://docs.androidide.com/">documentation</a>]]>.</string>
   <string name="greeting_title">Welcome</string>
   <string name="greeting_subtitle">Learn, build, launch. All on your Android.</string>
-  <string name="about_disclaimer">Disclaimer: DevxyzIDE Pro is created, developed, and owned by Jay-Ar Lee Espiritu. It is an independent project and is not affiliated with the original AndroidIDE project. DevxyzIDE Pro is built on open-source software released under the GNU General Public License v3.0, and the original authors remain credited under Contributors.</string>
+  <string name="about_disclaimer">Disclaimer: DevxyzIDE Pro is created, developed, and owned by Jay-Ar Lee Espiritu. It is an independent project and is not affiliated with the original AndroidIDE project. DevxyzIDE Pro is built on open-source software released under the GNU General Public License v3.0.</string>
   <string name="donate_support_title">Support DevxyzIDE Pro</string>
   <string name="donate_message">DevxyzIDE Pro is free. If it helps you learn and build Android apps, you can support its creator by scanning this QR code with GCash, Maya, or any banking app that supports InstaPay.</string>
   <string name="donate_qr_description">InstaPay QR code for donations</string>

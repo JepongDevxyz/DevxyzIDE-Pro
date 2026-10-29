@@ -17,12 +17,9 @@
 package com.jepongdevxyz.idefcs.activities
 
 import android.content.Context
-import android.content.Intent
 import android.os.Bundle
 import android.text.SpannableStringBuilder
-import android.text.style.ForegroundColorSpan
 import android.view.View
-import androidx.annotation.ColorInt
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
@@ -30,7 +27,6 @@ import androidx.core.graphics.Insets
 import androidx.core.view.updatePaddingRelative
 import com.blankj.utilcode.util.ClipboardUtils
 import com.blankj.utilcode.util.SizeUtils
-import com.jepongdevxyz.idefcs.BuildConfig
 import com.jepongdevxyz.idefcs.R
 import com.jepongdevxyz.idefcs.adapters.SimpleIconTitleDescriptionAdapter
 import com.jepongdevxyz.idefcs.app.BaseApplication
@@ -62,10 +58,6 @@ class AboutActivity : EdgeToEdgeIDEActivity() {
     private var id = 0
     private val ACTION_WEBSITE = id++
     private val ACTION_EMAIL = id++
-    private val ACTION_TG_CHANNEL = id++
-    private val ACTION_TG_GROUP = id++
-    private val ACTION_CONTRIBUTE = id++
-    private val ACTION_CONTRIBUTORS = id++
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -93,11 +85,6 @@ class AboutActivity : EdgeToEdgeIDEActivity() {
         sectionTitle.setText(R.string.title_socials)
         sectionItems.adapter = AboutSocialItemsAdapter(createSocialItems(), ::handleActionClick)
       }
-
-      misc.apply {
-        sectionTitle.setText(R.string.title_misc)
-        sectionItems.adapter = AboutSocialItemsAdapter(createMiscItems(), ::handleActionClick)
-      }
     }
   }
 
@@ -116,10 +103,6 @@ class AboutActivity : EdgeToEdgeIDEActivity() {
     when (action.id) {
       ACTION_WEBSITE -> app.openWebsite()
       ACTION_EMAIL -> app.emailUs()
-      ACTION_TG_GROUP -> app.openTelegramGroup()
-      ACTION_TG_CHANNEL -> app.openTelegramChannel()
-      ACTION_CONTRIBUTE -> app.openUrl(BaseApplication.CONTRIBUTOR_GUIDE_URL)
-      ACTION_CONTRIBUTORS -> startActivity(Intent(this, ContributorsActivity::class.java))
     }
   }
 
@@ -141,47 +124,6 @@ class AboutActivity : EdgeToEdgeIDEActivity() {
           R.drawable.ic_email,
           R.string.about_option_email,
           BaseApplication.EMAIL
-        )
-      )
-      add(
-        createSimpleIconTextItem(
-          this@AboutActivity,
-          ACTION_TG_GROUP,
-          R.drawable.ic_telegram,
-          R.string.discussions_on_telegram,
-          BaseApplication.TELEGRAM_GROUP_URL
-        )
-      )
-      add(
-        createSimpleIconTextItem(
-          this@AboutActivity,
-          ACTION_TG_CHANNEL,
-          R.drawable.ic_telegram,
-          R.string.official_tg_channel,
-          BaseApplication.TELEGRAM_CHANNEL_URL
-        )
-      )
-    }
-  }
-
-  private fun createMiscItems(): List<IconTitleDescriptionItem> {
-    return mutableListOf<IconTitleDescriptionItem>().apply {
-      add(
-        SimpleIconTitleDescriptionItem.create(
-          this@AboutActivity,
-          ACTION_CONTRIBUTE,
-          R.drawable.ic_code,
-          R.string.title_contribute,
-          R.string.summary_contribute
-        )
-      )
-      add(
-        SimpleIconTitleDescriptionItem.create(
-          this@AboutActivity,
-          ACTION_CONTRIBUTORS,
-          R.drawable.ic_heart_outline,
-          R.string.title_contributors,
-          R.string.summary_contributors
         )
       )
     }
@@ -207,70 +149,24 @@ class AboutActivity : EdgeToEdgeIDEActivity() {
    *
    * Format of the version name string is :
    *
-   * `v[version-name]-[variant] ([build-type]/[[UN]OFFICIAL])`
+   * `v[version-name]-[variant] (official)`
    */
-  @Suppress("KDocUnresolvedReference")
   private fun createVersionText(): CharSequence {
     val builder = SpannableStringBuilder()
     builder.append("v")
-    builder.append(BuildInfo.VERSION_NAME_SIMPLE)
+    builder.append(getAppVersionName())
     builder.append("-")
     builder.append(IDEBuildConfigProvider.getInstance().cpuAbiName)
-    builder.append(" ")
-
-    val colorPositive = ContextCompat.getColor(this, R.color.color_success)
-    val colorNegative = ContextCompat.getColor(this, R.color.color_error)
-
-    appendBuildType(builder, colorPositive, colorNegative)
-
+    builder.append(" (official)")
     return builder
   }
 
-  private fun appendBuildType(
-    builder: SpannableStringBuilder,
-    @ColorInt
-    colorPositive: Int,
-    @ColorInt
-    colorNegative: Int
-  ) {
-    @Suppress("KotlinConstantConditions")
-    var color = if (BuildConfig.BUILD_TYPE != "release") {
-      colorNegative
-    } else {
-      colorPositive
+  private fun getAppVersionName(): String {
+    return try {
+      packageManager.getPackageInfo(packageName, 0).versionName ?: BuildInfo.VERSION_NAME
+    } catch (e: Exception) {
+      BuildInfo.VERSION_NAME
     }
-
-    builder.append("(")
-    appendForegroundSpan(builder, BuildConfig.BUILD_TYPE, color)
-
-    val isOfficialBuild = BuildInfoUtils.isOfficialBuild(this)
-
-    color = if (isOfficialBuild) {
-      colorPositive
-    } else {
-      colorNegative
-    }
-
-    builder.append("/")
-    appendForegroundSpan(
-      builder,
-      BuildInfoUtils.getBuildType(this).lowercase(),
-      color
-    )
-
-    builder.append(")")
-  }
-
-  private fun appendForegroundSpan(
-    builder: SpannableStringBuilder,
-    text: CharSequence,
-    color: Int
-  ) {
-    builder.append(
-      text,
-      ForegroundColorSpan(color),
-      SpannableStringBuilder.SPAN_EXCLUSIVE_EXCLUSIVE
-    )
   }
 
   override fun onDestroy() {

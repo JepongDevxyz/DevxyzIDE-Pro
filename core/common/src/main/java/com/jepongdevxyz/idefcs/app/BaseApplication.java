@@ -35,12 +35,10 @@ import java.io.File;
 public class BaseApplication extends Application {
 
   public static final String NOTIFICATION_GRADLE_BUILD_SERVICE = "17571";
-  public static final String TELEGRAM_GROUP_URL = "https://t.me/androidide_discussions";
-  public static final String TELEGRAM_CHANNEL_URL = "https://t.me/AndroidIDEOfficial";
   public static final String DOCS_URL = "https://github.com/JepongDevxyz/DevxyzIDE-Pro";
   public static final String CONTRIBUTOR_GUIDE_URL =
       BuildInfo.REPO_URL + "/blob/dev/CONTRIBUTING.md";
-  public static final String EMAIL = "contact@androidide.com";
+  public static final String EMAIL = "businessdevgithubjepong@gmail.com";
   private static BaseApplication instance;
   private PreferenceManager mPrefsManager;
 
@@ -75,14 +73,6 @@ public class BaseApplication extends Application {
     return Environment.PROJECTS_DIR;
   }
 
-  public void openTelegramGroup() {
-    openTelegram(BaseApplication.TELEGRAM_GROUP_URL);
-  }
-
-  public void openTelegramChannel() {
-    openTelegram(BaseApplication.TELEGRAM_CHANNEL_URL);
-  }
-
   public void openGitHub() {
     openUrl(BuildInfo.REPO_URL);
   }
@@ -101,10 +91,6 @@ public class BaseApplication extends Application {
 
   public void openUrl(String url) {
     openUrl(url, null);
-  }
-
-  public void openTelegram(String url) {
-    openUrl(url, "org.telegram.messenger");
   }
 
   public void openUrl(String url, String pkg) {
