@@ -20,8 +20,8 @@ package com.jepongdevxyz.idefcs.fable
 import android.content.Context
 import com.jepongdevxyz.idefcs.preferences.internal.GeneralPreferences
 import com.jepongdevxyz.idefcs.projects.IProjectManager
-import com.jepongdevxyz.idefcs.services.BuildService
-import com.jepongdevxyz.lookups.Lookup
+import com.jepongdevxyz.idefcs.projects.builder.BuildService
+import com.jepongdevxyz.idefcs.lookup.Lookup
 import java.util.Collections
 
 /**
