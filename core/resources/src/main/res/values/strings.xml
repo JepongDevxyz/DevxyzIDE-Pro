@@ -566,4 +566,16 @@
   <string name="summary_open_source_licenses">View open source licenses.</string>
   <string name="idepref_jdkVersion_title">JDK version</string>
   <string name="idepref_jdkVersion_summary">Currently selected: %1$s (requires restart if changed)</string>
+  <string name="title_fable_panel">Devxyz Fable</string>
+  <string name="title_fable_enable">Enable Devxyz Fable</string>
+  <string name="msg_fable_enable_summary">Builds a local map of the open project (modules, files, dependencies, versions). Off by default. Everything stays on this device; no network calls are made.</string>
+  <string name="msg_fable_off">Fable is off. Turn it on to build the project map.</string>
+  <string name="msg_fable_no_project">No project is open.</string>
+  <string name="msg_fable_indexing">Building the project map\u2026</string>
+  <string name="title_fable_map">Project map</string>
+  <string name="title_fable_environment">Environment</string>
+  <string name="msg_fable_refresh">Refresh map</string>
+  <string name="msg_fable_scope">Devxyz Fable works only inside DevxyzIDE Pro and the open project.</string>
+  <string name="msg_fable_powered">Powered by Jepong Devxyz</string>
+  <string name="msg_fable_updated">Updated %1$s</string>
 </resources>

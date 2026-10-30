@@ -32,6 +32,7 @@ object GeneralPreferences {
   const val SELECTED_LOCALE = "idpref_general_locale"
   const val OPEN_PROJECTS = "idepref_general_autoOpenProjects"
   const val CONFIRM_PROJECT_OPEN = "idepref_general_confirmProjectOpen"
+  const val FABLE_ENABLED = "idepref_fable_enabled"
   const val TERMINAL_USE_SYSTEM_SHELL = "idepref_general_terminalShell"
   const val LAST_OPENED_PROJECT = "ide_last_project"
 
@@ -80,6 +81,12 @@ object GeneralPreferences {
     get() = prefManager.getBoolean(CONFIRM_PROJECT_OPEN, false)
     set(value) {
       prefManager.putBoolean(CONFIRM_PROJECT_OPEN, value)
+    }
+
+  var fableEnabled: Boolean
+    get() = prefManager.getBoolean(FABLE_ENABLED, false)
+    set(value) {
+      prefManager.putBoolean(FABLE_ENABLED, value)
     }
 
   var useSystemShell: Boolean

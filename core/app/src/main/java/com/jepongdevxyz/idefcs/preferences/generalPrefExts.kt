@@ -43,6 +43,7 @@ class GeneralPreferencesScreen(
     addPreference(InterfaceConfig())
     addPreference(ProjectConfig())
     addPreference(TerminalConfig())
+    addPreference(FableConfig())
   }
 }
 
@@ -254,6 +255,39 @@ class UseSytemShell(
 
   override fun onPreferenceChanged(preference: Preference, newValue: Any?): Boolean {
     GeneralPreferences.useSystemShell = newValue as Boolean? ?: GeneralPreferences.useSystemShell
+    return true
+  }
+}
+
+@Parcelize
+class FableConfig(
+  override val key: String = "idepref_general_fable",
+  override val title: Int = string.title_fable_panel,
+  override val children: List<IPreference> = mutableListOf(),
+) : IPreferenceGroup() {
+
+  init {
+    addPreference(FableEnabled())
+  }
+}
+
+@Parcelize
+class FableEnabled(
+  override val key: String = GeneralPreferences.FABLE_ENABLED,
+  override val title: Int = string.title_fable_enable,
+  override val summary: Int? = string.msg_fable_enable_summary,
+  override val icon: Int? = drawable.ic_fable
+) : SwitchPreference() {
+
+  override fun onCreatePreference(context: Context): Preference {
+    val pref = super.onCreatePreference(context) as androidx.preference.SwitchPreference
+    pref.isChecked = GeneralPreferences.fableEnabled
+    return pref
+  }
+
+  override fun onPreferenceChanged(preference: Preference, newValue: Any?): Boolean {
+    GeneralPreferences.fableEnabled = newValue as Boolean?
+      ?: GeneralPreferences.fableEnabled
     return true
   }
 }

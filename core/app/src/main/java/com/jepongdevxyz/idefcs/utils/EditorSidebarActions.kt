@@ -44,6 +44,7 @@ import com.jepongdevxyz.idefcs.actions.internal.DefaultActionsRegistry
 import com.jepongdevxyz.idefcs.actions.sidebar.BuildVariantsSidebarAction
 import com.jepongdevxyz.idefcs.actions.sidebar.CloseProjectSidebarAction
 import com.jepongdevxyz.idefcs.actions.sidebar.FileTreeSidebarAction
+import com.jepongdevxyz.idefcs.actions.sidebar.FableSidebarAction
 import com.jepongdevxyz.idefcs.actions.sidebar.PreferencesSidebarAction
 import com.jepongdevxyz.idefcs.actions.sidebar.TerminalSidebarAction
 import com.jepongdevxyz.idefcs.fragments.sidebar.EditorSidebarFragment
@@ -66,6 +67,7 @@ internal object EditorSidebarActions {
     @Suppress("KotlinConstantConditions")
     registry.registerAction(FileTreeSidebarAction(context, ++order))
     registry.registerAction(BuildVariantsSidebarAction(context, ++order))
+    registry.registerAction(FableSidebarAction(context, ++order))
     registry.registerAction(TerminalSidebarAction(context, ++order))
     registry.registerAction(PreferencesSidebarAction(context, ++order))
     registry.registerAction(CloseProjectSidebarAction(context, ++order))
