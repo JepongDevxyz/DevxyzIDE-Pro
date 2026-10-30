@@ -286,7 +286,11 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
   }
 
   private fun currentProjectDir(): File? {
-    val path = IProjectManager.getInstance().projectDirPath
+    val path = try {
+      IProjectManager.getInstance().projectDirPath
+    } catch (e: Exception) {
+      null
+    }
     if (path.isNullOrBlank()) {
       return null
     }

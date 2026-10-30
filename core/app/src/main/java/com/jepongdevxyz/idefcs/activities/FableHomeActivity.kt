@@ -143,7 +143,11 @@ class FableHomeActivity : EdgeToEdgeIDEActivity() {
       countUnread = false
     )
 
-    val projectPath = IProjectManager.getInstance().projectDirPath
+    val projectPath = try {
+      IProjectManager.getInstance().projectDirPath
+    } catch (e: Exception) {
+      null
+    }
     val index = if (projectPath.isNullOrBlank()) null
     else FableIndexStore.load(filesDir, projectPath)
     val log = FableChatStore.load(filesDir, scopePath)
