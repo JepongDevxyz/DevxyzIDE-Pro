@@ -535,7 +535,7 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
     try {
       val pending = FableIntake.pendingAutoBuildPath ?: return
       val projectPath = IProjectManager.getInstance().projectDirPath
-      if (projectPath == null || pending != projectPath.absolutePath) {
+      if (projectPath == null || pending != projectPath) {
         return
       }
       if (editorViewModel.isInitializing || editorViewModel.isBuildInProgress) {

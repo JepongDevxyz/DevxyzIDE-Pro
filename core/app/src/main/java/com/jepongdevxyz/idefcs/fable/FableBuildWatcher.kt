@@ -67,7 +67,7 @@ object FableBuildWatcher {
       } ?: return
 
       val filesDir = context.filesDir
-      val projectPath = projectDir.absolutePath
+      val projectPath = projectDir
 
       if (success) {
         val wasFailed = FableChatStore.setLastBuildFailed(filesDir, projectPath, false)
