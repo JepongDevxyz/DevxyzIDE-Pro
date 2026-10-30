@@ -36,7 +36,13 @@ object FableClassifier {
     UNKNOWN
   }
 
-  data class Result(val kind: Kind, val message: String)
+  data class Result(val kind: Kind, val message: String, val missingPlatformApi: Int? = null)
+
+  private val missingPlatformJarPattern = Regex("""platforms/android-(\d+)/android\.jar does not exist""")
+
+  private val missingPlatformPathPattern = Regex("""platforms;android-(\d+)""")
+
+  private val missingTargetPattern = Regex("""target with hash string 'android-(\d+)'""")
 
   private val coordinatePattern = Regex("""([\w.\-]+:[\w.\-]+:[\w.\-]+)""")
 
@@ -80,6 +86,19 @@ object FableClassifier {
           "kino-configure ang project. Tiningnan ko ang mga repository na hinanapan — " +
           "kung wala roon ang local plugin repository ng IDE, iyon ang unang dapat ayusin; " +
           "kung naroon naman ito, maaaring network o nawawalang plugin version ang dahilan."
+      )
+    }
+
+    val missingApi = missingPlatformJarPattern.find(output)?.groupValues?.get(1)?.toIntOrNull()
+      ?: missingPlatformPathPattern.find(output)?.groupValues?.get(1)?.toIntOrNull()
+      ?: missingTargetPattern.find(output)?.groupValues?.get(1)?.toIntOrNull()
+    if (missingApi != null) {
+      return Result(
+        Kind.SDK_MISSING,
+        "May napansin ako: kulang ang Android $missingApi platform sa SDK ng IDE — " +
+          "ito ang kailangan ng project (compileSdk $missingApi), kaya huminto ang " +
+          "configuration. Kailangan muna itong ma-install.",
+        missingApi
       )
     }
 
