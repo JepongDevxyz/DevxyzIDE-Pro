@@ -104,7 +104,7 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
     val filesDir = requireContext().filesDir
     TaskExecutor.executeAsync(
       Callable {
-        val index = KnowledgeIndexBuilder.build(projectDir, Environment.ANDROID_HOME)
+        val index = KnowledgeIndexBuilder.build(projectDir, Environment.ANDROID_HOME, Environment.JAVA_HOME)
         FableIndexStore.save(filesDir, index)
         index
       }

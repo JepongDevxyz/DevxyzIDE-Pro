@@ -164,7 +164,7 @@ object KnowledgeIndexBuilder {
     """^\s*(?:implementation|api|compileOnly|runtimeOnly|testImplementation|androidTestImplementation)\s*\(?\s*project\(\s*['"]([^'"]+)['"]"""
   )
 
-  fun build(projectDir: File, androidHome: File?): KnowledgeIndex {
+  fun build(projectDir: File, androidHome: File?, javaHome: File?): KnowledgeIndex {
     val modulePaths = readModulePaths(projectDir)
     val catalogText = readFile(File(projectDir, "gradle/libs.versions.toml"))
     val rootBuildText = readFile(File(projectDir, "build.gradle.kts")) +
@@ -187,7 +187,7 @@ object KnowledgeIndexBuilder {
       kotlinVersion = findKotlinVersion(rootBuildText, settingsText, catalogText),
       sdkPlatforms = listSubdirs(androidHome?.let { File(it, "platforms") }),
       buildToolsVersions = listSubdirs(androidHome?.let { File(it, "build-tools") }),
-      javaVersion = System.getProperty("java.version"),
+      javaVersion = readJavaVersion(javaHome),
       builtAtMillis = System.currentTimeMillis()
     )
   }
@@ -232,17 +232,42 @@ object KnowledgeIndexBuilder {
     val settingsText = readFile(File(projectDir, "settings.gradle.kts")) +
       readFile(File(projectDir, "settings.gradle"))
     val paths = linkedSetOf<String>()
-    val includeToken = Regex("""['"](:[A-Za-z0-9_\-:]+)['"]""")
-    for (line in settingsText.lineSequence()) {
-      if (!line.contains("include")) continue
-      for (match in includeToken.findAll(line)) {
+    val token = Regex("""['"](:[A-Za-z0-9_\-:]+)['"]""")
+
+    // include( ":app", ":core:app", ... ) — the argument list may span
+    // multiple lines (this is how large Kotlin DSL projects declare modules).
+    val includeBlock = Regex("""\binclude\s*\(([^)]*)\)""")
+    for (block in includeBlock.findAll(settingsText)) {
+      for (match in token.findAll(block.groupValues[1])) {
         paths.add(match.groupValues[1].removePrefix(":").replace(':', '/'))
       }
     }
+
+    // Paren-less Groovy style: include ':app'
+    if (paths.isEmpty()) {
+      for (line in settingsText.lineSequence()) {
+        if (!line.contains("include") || line.contains("includeBuild")) continue
+        for (match in token.findAll(line)) {
+          paths.add(match.groupValues[1].removePrefix(":").replace(':', '/'))
+        }
+      }
+    }
+
     if (paths.isEmpty()) {
       paths.add("")
     }
     return paths.toList()
+  }
+
+  /**
+   * The IDE toolchain's Java version, read from the JDK's own release file
+   * (System.getProperty("java.version") is "0" on Android, so it is useless).
+   */
+  private fun readJavaVersion(javaHome: File?): String? {
+    if (javaHome == null) return null
+    val release = readFile(File(javaHome, "release"))
+    return Regex("""JAVA_VERSION="([0-9][0-9A-Za-z._\-]*)"""")
+      .find(release)?.groupValues?.get(1)
   }
 
   private fun countFiles(projectDir: File): Int {
