@@ -47,6 +47,7 @@ constructor(
     const val ACTION_PREFERENCES = 4
     const val ACTION_DONATE = 5
     const val ACTION_DOCS = 6
+    const val ACTION_FABLE = 7
 
     /**
      * Get all main screen actions.
@@ -90,8 +91,14 @@ constructor(
           R.string.btn_docs,
           R.drawable.ic_docs)
 
+        val fable = MainScreenAction(
+          ACTION_FABLE,
+          R.string.title_fable_panel,
+          R.drawable.ic_fable)
+
         Collections.addAll(this,
           createProject,
+          fable,
           openProject,
           cloneGitRepository,
           openTerminal,

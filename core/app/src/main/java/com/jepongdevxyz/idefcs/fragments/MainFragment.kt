@@ -9,6 +9,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.viewModels
 import com.google.android.material.progressindicator.LinearProgressIndicator
+import com.jepongdevxyz.idefcs.activities.FableHomeActivity
 import com.jepongdevxyz.idefcs.activities.MainActivity
 import com.jepongdevxyz.idefcs.activities.PreferencesActivity
 import com.jepongdevxyz.idefcs.activities.TerminalActivity
@@ -70,6 +71,8 @@ class MainFragment : BaseFragment() {
           MainScreenAction.ACTION_DONATE -> DonateDialogFragment().show(
             parentFragmentManager, DonateDialogFragment.TAG)
           MainScreenAction.ACTION_DOCS -> BaseApplication.getBaseInstance().openDocs()
+          MainScreenAction.ACTION_FABLE -> startActivity(
+            Intent(requireActivity(), FableHomeActivity::class.java))
         }
       }
 

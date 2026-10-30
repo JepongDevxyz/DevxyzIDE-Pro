@@ -26,6 +26,8 @@ import androidx.core.view.marginTop
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updateMarginsRelative
 import androidx.core.view.updatePadding
+import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.navOptions
 import com.jepongdevxyz.idefcs.databinding.FragmentEditorSidebarBinding
 import com.jepongdevxyz.idefcs.fragments.FragmentWithBinding
 import com.jepongdevxyz.idefcs.utils.EditorSidebarActions
@@ -62,6 +64,25 @@ class EditorSidebarFragment : FragmentWithBinding<FragmentEditorSidebarBinding>(
   override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)
     EditorSidebarActions.setup(this)
+  }
+
+  /**
+   * Navigates the sidebar's NavHost to the destination with the given
+   * action/destination id, using the same options as the navigation rail.
+   * Used by the Fable chat head to open the Fable panel.
+   */
+  internal fun openDestination(destinationId: String) {
+    try {
+      val binding = _binding ?: return
+      val controller = binding.fragmentContainer.getFragment<NavHostFragment>().navController
+      controller.navigate(destinationId, navOptions {
+        launchSingleTop = true
+        restoreState = true
+      })
+    } catch (e: Exception) {
+      // The destination may already be current, or the graph may have
+      // changed; opening the drawer is still a useful outcome.
+    }
   }
 
   /**

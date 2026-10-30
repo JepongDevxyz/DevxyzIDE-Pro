@@ -30,6 +30,7 @@ import com.blankj.utilcode.util.ZipUtils
 import com.jepongdevxyz.idefcs.BuildConfig
 import com.jepongdevxyz.idefcs.R.*
 import com.jepongdevxyz.idefcs.app.BaseApplication
+import com.jepongdevxyz.idefcs.fable.FableBuildWatcher
 import com.jepongdevxyz.idefcs.lookup.Lookup
 import com.jepongdevxyz.idefcs.managers.ToolsManager
 import com.jepongdevxyz.idefcs.preferences.internal.BuildPreferences
@@ -259,6 +260,7 @@ class GradleBuildService : Service(), BuildService, IToolingApiClient,
   }
 
   override fun logOutput(line: String) {
+    FableBuildWatcher.onOutputLine(line)
     eventListener?.onOutput(line)
   }
 
@@ -269,11 +271,13 @@ class GradleBuildService : Service(), BuildService, IToolingApiClient,
 
   override fun onBuildSuccessful(result: BuildResult) {
     updateNotification(getString(R.string.build_status_sucess), false)
+    FableBuildWatcher.onBuildFinished(this, true)
     eventListener?.onBuildSuccessful(result.tasks)
   }
 
   override fun onBuildFailed(result: BuildResult) {
     updateNotification(getString(R.string.build_status_failed), false)
+    FableBuildWatcher.onBuildFinished(this, false)
     eventListener?.onBuildFailed(result.tasks)
   }
 

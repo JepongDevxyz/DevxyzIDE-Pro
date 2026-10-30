@@ -578,4 +578,14 @@
   <string name="msg_fable_scope">Devxyz Fable works only inside DevxyzIDE Pro and the open project.</string>
   <string name="msg_fable_powered">Powered by Jepong Devxyz</string>
   <string name="msg_fable_updated">Updated %1$s</string>
+  <string name="title_fable_chat">Chat</string>
+  <string name="msg_fable_chat_hint">Ask about this project…</string>
+  <string name="msg_fable_chat_empty">No messages yet. Ask me about this project, or attach a ZIP, APK or file and I will read it.</string>
+  <string name="msg_fable_chat_off">Turn Fable on to chat.</string>
+  <string name="cd_fable_attach">Attach a file</string>
+  <string name="cd_fable_send">Send message</string>
+  <string name="cd_fable_head">Devxyz Fable has a message</string>
+  <string name="title_fable_home">Devxyz Fable</string>
+  <string name="msg_fable_home_hint">Ask, or send a project ZIP…</string>
+  <string name="msg_fable_home_empty">Kamusta! Ako si Devxyz Fable. Send me a project ZIP and I will import it, map it and start its first build — or ask me anything about the open project.</string>
 </resources>

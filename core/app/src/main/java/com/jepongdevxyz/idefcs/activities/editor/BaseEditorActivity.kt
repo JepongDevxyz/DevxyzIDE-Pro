@@ -76,7 +76,12 @@ import com.jepongdevxyz.idefcs.fragments.sidebar.FileTreeFragment
 import com.jepongdevxyz.idefcs.handlers.EditorActivityLifecyclerObserver
 import com.jepongdevxyz.idefcs.handlers.LspHandler.registerLanguageServers
 import com.jepongdevxyz.idefcs.interfaces.DiagnosticClickListener
+import com.jepongdevxyz.idefcs.actions.sidebar.FableSidebarAction
+import com.jepongdevxyz.idefcs.fable.FableChatStore
+import com.jepongdevxyz.idefcs.fable.FableIntake
 import com.jepongdevxyz.idefcs.lookup.Lookup
+import com.jepongdevxyz.idefcs.preferences.internal.GeneralPreferences
+import com.jepongdevxyz.idefcs.projects.builder.BuildService
 import com.jepongdevxyz.idefcs.lsp.models.DiagnosticItem
 import com.jepongdevxyz.idefcs.models.DiagnosticGroup
 import com.jepongdevxyz.idefcs.models.OpenedFile
@@ -452,8 +457,105 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
     getFileTreeFragment()?.saveTreeState()
   }
 
+  // region Fable chat head + intake auto-build
+  private fun refreshFableHead() {
+    try {
+      val head = binding.fableHead
+      if (!GeneralPreferences.fableEnabled) {
+        head.visibility = View.GONE
+        return
+      }
+      val projectPath = IProjectManager.getInstance().projectDirPath
+      if (projectPath.isNullOrBlank()) {
+        head.visibility = View.GONE
+        return
+      }
+      val unread = FableChatStore.unreadCount(filesDir, projectPath)
+      if (unread <= 0) {
+        head.visibility = View.GONE
+        return
+      }
+      head.visibility = View.VISIBLE
+      binding.fableBadge.visibility = View.VISIBLE
+      binding.fableBadge.text = unread.toString()
+    } catch (e: Exception) {
+      // The chat head is decorative; it must never break the editor.
+    }
+  }
+
+  private fun setupFableHead() {
+    try {
+      val head = binding.fableHead
+      var downY = 0f
+      var startTranslation = 0f
+      var dragged = false
+      head.setOnTouchListener { view, event ->
+        when (event.actionMasked) {
+          android.view.MotionEvent.ACTION_DOWN -> {
+            downY = event.rawY
+            startTranslation = view.translationY
+            dragged = false
+            true
+          }
+          android.view.MotionEvent.ACTION_MOVE -> {
+            val dy = event.rawY - downY
+            if (kotlin.math.abs(dy) > 12f) dragged = true
+            val maxShift = resources.displayMetrics.heightPixels * 0.35f
+            view.translationY = (startTranslation + dy).coerceIn(-maxShift, maxShift)
+            true
+          }
+          android.view.MotionEvent.ACTION_UP -> {
+            if (!dragged) view.performClick()
+            true
+          }
+          else -> false
+        }
+      }
+      head.setOnClickListener {
+        try {
+          binding.root.openDrawer(GravityCompat.START)
+          binding.drawerSidebar.getFragment<EditorSidebarFragment>()
+            .openDestination(FableSidebarAction.ID)
+        } catch (e: Exception) {
+          log.error("Failed to open Fable panel from chat head", e)
+        }
+      }
+      FableChatStore.addListener(fableChatListener)
+      refreshFableHead()
+    } catch (e: Exception) {
+      log.error("Failed to set up Fable chat head", e)
+    }
+  }
+
+  private val fableChatListener: () -> Unit = {
+    runOnUiThread { refreshFableHead() }
+  }
+
+  private fun maybeRunFableIntakeBuild() {
+    try {
+      val pending = FableIntake.pendingAutoBuildPath ?: return
+      val projectPath = IProjectManager.getInstance().projectDirPath
+      if (projectPath == null || pending != projectPath.absolutePath) {
+        return
+      }
+      if (editorViewModel.isInitializing || editorViewModel.isBuildInProgress) {
+        return
+      }
+      val buildService = Lookup.getDefault().lookup(BuildService.KEY_BUILD_SERVICE) ?: return
+      if (!buildService.isToolingServerStarted()) {
+        return
+      }
+      FableIntake.pendingAutoBuildPath = null
+      buildService.executeTasks("assembleDebug")
+    } catch (e: Exception) {
+      log.error("Failed to start the Fable intake build", e)
+    }
+  }
+  // endregion
+
   override fun onResume() {
     super.onResume()
+    refreshFableHead()
     invalidateOptionsMenu()
 
     memoryUsageWatcher.listener = memoryUsageListener
@@ -473,6 +575,7 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
   }
 
   override fun onDestroy() {
+    FableChatStore.removeListener(fableChatListener)
     checkIsDestroying()
     preDestroy()
     super.onDestroy()
@@ -653,9 +756,11 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
     val visible = editorViewModel.isBuildInProgress || editorViewModel.isInitializing
     content.progressIndicator.visibility = if (visible) View.VISIBLE else View.GONE
     invalidateOptionsMenu()
+    maybeRunFableIntakeBuild()
   }
 
   private fun setupViews() {
+    setupFableHead()
     editorViewModel._isBuildInProgress.observe(this) { onBuildStatusChanged() }
     editorViewModel._isInitializing.observe(this) { onBuildStatusChanged() }
     editorViewModel._statusText.observe(this) { content.bottomSheet.setStatus(it.first, it.second) }

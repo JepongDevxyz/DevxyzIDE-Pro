@@ -17,10 +17,21 @@
 
 package com.jepongdevxyz.idefcs.fragments.sidebar
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
+import androidx.activity.result.contract.ActivityResultContracts
+import com.jepongdevxyz.idefcs.activities.editor.EditorActivityKt
 import com.jepongdevxyz.idefcs.databinding.FragmentFablePanelBinding
+import com.jepongdevxyz.idefcs.fable.FableArchiveReader
+import com.jepongdevxyz.idefcs.fable.FableChatMessage
+import com.jepongdevxyz.idefcs.fable.FableChatStore
+import com.jepongdevxyz.idefcs.fable.FableChatUi
 import com.jepongdevxyz.idefcs.fable.FableIndexStore
+import com.jepongdevxyz.idefcs.fable.FableIntake
+import com.jepongdevxyz.idefcs.fable.FableLocalBrain
+import com.jepongdevxyz.idefcs.fable.FableRole
 import com.jepongdevxyz.idefcs.fable.KnowledgeIndex
 import com.jepongdevxyz.idefcs.fable.KnowledgeIndexBuilder
 import com.jepongdevxyz.idefcs.fragments.FragmentWithBinding
@@ -36,13 +47,25 @@ import java.util.Locale
 import java.util.concurrent.Callable
 
 /**
- * The Devxyz Fable panel (Phase 1: read-only). Shows Fable's local knowledge
- * index of the opened project. Fable is OFF by default; when off, nothing is
- * indexed. Everything is computed and stored on-device.
+ * The Devxyz Fable panel. Phase 1 built the read-only project map; Phase 2
+ * adds the local chat (deterministic answers from the map, attachment
+ * reading, project ZIP intake) and renders the build watcher's proactive
+ * notices. Fable is OFF by default; when off, nothing here runs.
  */
 class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
   FragmentFablePanelBinding::inflate
 ) {
+
+  private val chatListener: () -> Unit = {
+    _binding?.root?.post { renderChat() }
+  }
+
+  private val attachmentLauncher =
+    registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+      if (uri != null) {
+        onAttachmentPicked(uri)
+      }
+    }
 
   override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)
@@ -53,8 +76,18 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
       render()
     }
     binding.fableRefresh.setOnClickListener { rebuildIndex() }
+    binding.fableChatSend.setOnClickListener { sendChatMessage() }
+    binding.fableChatAttach.setOnClickListener {
+      attachmentLauncher.launch(arrayOf("*/*"))
+    }
 
+    FableChatStore.addListener(chatListener)
     render()
+  }
+
+  override fun onDestroyView() {
+    FableChatStore.removeListener(chatListener)
+    super.onDestroyView()
   }
 
   private fun render() {
@@ -68,6 +101,7 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
       binding.fableMapBody.text = getString(R.string.msg_fable_off)
       binding.fableEnvBody.text = ""
       binding.fableUpdated.text = ""
+      renderChat()
       return
     }
 
@@ -77,6 +111,7 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
       binding.fableMapBody.text = getString(R.string.msg_fable_no_project)
       binding.fableEnvBody.text = ""
       binding.fableUpdated.text = ""
+      renderChat()
       return
     }
 
@@ -86,6 +121,7 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
     } else {
       rebuildIndex()
     }
+    renderChat()
   }
 
   private fun rebuildIndex() {
@@ -154,6 +190,99 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
     val updated = SimpleDateFormat("MMM d, h:mm a", Locale.getDefault())
       .format(Date(index.builtAtMillis))
     binding.fableUpdated.text = getString(R.string.msg_fable_updated, updated)
+  }
+
+  // ------------------------------------------------------------------ chat
+
+  private fun renderChat() {
+    val binding = _binding ?: return
+    val projectDir = currentProjectDir()
+
+    if (!GeneralPreferences.fableEnabled || projectDir == null) {
+      binding.fableChatList.removeAllViews()
+      binding.fableChatEmpty.visibility = View.VISIBLE
+      binding.fableChatEmpty.text = getString(
+        if (!GeneralPreferences.fableEnabled) R.string.msg_fable_chat_off
+        else R.string.msg_fable_no_project
+      )
+      return
+    }
+
+    val log = FableChatStore.load(requireContext().filesDir, projectDir.absolutePath)
+    FableChatUi.renderMessages(binding.fableChatList, log)
+    binding.fableChatEmpty.visibility = if (log.messages.isEmpty()) View.VISIBLE else View.GONE
+    binding.fableChatEmpty.text = getString(R.string.msg_fable_chat_empty)
+    FableChatStore.markAllRead(requireContext().filesDir, projectDir.absolutePath)
+  }
+
+  private fun sendChatMessage() {
+    val binding = _binding ?: return
+    val projectDir = currentProjectDir() ?: return
+    val text = binding.fableChatInput.text?.toString()?.trim().orEmpty()
+    if (text.isEmpty()) return
+    binding.fableChatInput.text = null
+
+    val filesDir = requireContext().filesDir
+    val projectPath = projectDir.absolutePath
+    FableChatStore.append(
+      filesDir,
+      projectPath,
+      FableChatMessage(FableRole.USER, text, System.currentTimeMillis()),
+      countUnread = false
+    )
+
+    val index = FableIndexStore.load(filesDir, projectPath)
+    val log = FableChatStore.load(filesDir, projectPath)
+    val reply = FableLocalBrain.reply(text, index, log.lastBuildFailed)
+    FableChatStore.append(
+      filesDir,
+      projectPath,
+      FableChatMessage(FableRole.FABLE, reply, System.currentTimeMillis()),
+      countUnread = false
+    )
+    renderChat()
+  }
+
+  private fun onAttachmentPicked(uri: Uri) {
+    val projectDir = currentProjectDir() ?: return
+    val context = requireContext()
+    val filesDir = context.filesDir
+    val projectPath = projectDir.absolutePath
+    val name = uri.lastPathSegment ?: "attachment"
+
+    FableChatStore.append(
+      filesDir,
+      projectPath,
+      FableChatMessage(FableRole.USER, "", System.currentTimeMillis(), attachmentName = name),
+      countUnread = false
+    )
+    renderChat()
+
+    val appContext = context.applicationContext
+    TaskExecutor.executeAsync(
+      Callable {
+        if (name.lowercase().endsWith(".zip") && FableIntake.looksLikeProjectZip(appContext, uri)) {
+          val result = FableIntake.importZip(appContext, uri, name)
+          result.projectDir to result.message
+        } else {
+          null to FableArchiveReader.summarize(appContext, uri)
+        }
+      }
+    ) { outcome ->
+      val message = outcome?.second ?: "Hindi ko nabasa ang file na iyon."
+      val importedDir = outcome?.first
+      FableChatStore.append(
+        filesDir,
+        projectPath,
+        FableChatMessage(FableRole.FABLE, message, System.currentTimeMillis()),
+        countUnread = false
+      )
+      renderChat()
+      if (importedDir != null) {
+        IProjectManager.getInstance().openProject(importedDir)
+        startActivity(Intent(requireContext(), EditorActivityKt::class.java))
+      }
+    }
   }
 
   private fun currentProjectDir(): File? {

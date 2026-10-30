@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:app="http://schemas.android.com/apk/res-auto"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:background="?attr/colorSurface"
+  android:orientation="vertical">
+
+  <com.google.android.material.appbar.MaterialToolbar
+    android:id="@+id/fable_home_toolbar"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    app:title="@string/title_fable_home" />
+
+  <LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="8dp">
+
+    <TextView
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:layout_weight="1"
+      android:text="@string/title_fable_enable"
+      android:textColor="?attr/colorOnSurface"
+      android:textSize="14sp" />
+
+    <com.google.android.material.switchmaterial.SwitchMaterial
+      android:id="@+id/fable_home_switch"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content" />
+
+  </LinearLayout>
+
+  <ScrollView
+    android:id="@+id/fable_home_scroll"
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_weight="1">
+
+    <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="vertical"
+      android:paddingHorizontal="16dp"
+      android:paddingBottom="12dp">
+
+      <TextView
+        android:id="@+id/fable_home_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="13sp" />
+
+      <TextView
+        android:id="@+id/fable_home_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/msg_fable_home_empty"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="13sp" />
+
+      <LinearLayout
+        android:id="@+id/fable_home_list"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical" />
+
+    </LinearLayout>
+
+  </ScrollView>
+
+  <LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="8dp"
+    android:paddingVertical="8dp">
+
+    <ImageButton
+      android:id="@+id/fable_home_attach"
+      android:layout_width="40dp"
+      android:layout_height="40dp"
+      android:background="?attr/selectableItemBackgroundBorderless"
+      android:contentDescription="@string/cd_fable_attach"
+      android:src="@drawable/ic_fable_attach"
+      app:tint="?attr/colorOnSurfaceVariant" />
+
+    <EditText
+      android:id="@+id/fable_home_input"
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:layout_marginStart="4dp"
+      android:layout_weight="1"
+      android:hint="@string/msg_fable_home_hint"
+      android:inputType="textMultiLine|textCapSentences"
+      android:maxLines="3"
+      android:textSize="14sp" />
+
+    <ImageButton
+      android:id="@+id/fable_home_send"
+      android:layout_width="40dp"
+      android:layout_height="40dp"
+      android:background="?attr/selectableItemBackgroundBorderless"
+      android:contentDescription="@string/cd_fable_send"
+      android:src="@drawable/ic_fable_send"
+      app:tint="?attr/colorPrimary" />
+
+  </LinearLayout>
+
+</LinearLayout>

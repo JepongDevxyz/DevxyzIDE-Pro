@@ -16,6 +16,7 @@
   -->
 
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:app="http://schemas.android.com/apk/res-auto"
   android:layout_width="match_parent"
   android:layout_height="match_parent"
   android:background="?attr/colorSurfaceContainer"
@@ -113,6 +114,74 @@
       android:layout_height="wrap_content"
       android:layout_marginTop="20dp"
       android:text="@string/msg_fable_refresh" />
+
+    <View
+      android:layout_width="match_parent"
+      android:layout_height="1dp"
+      android:layout_marginTop="16dp"
+      android:layout_marginBottom="16dp"
+      android:background="?attr/colorOutlineVariant" />
+
+    <TextView
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:text="@string/title_fable_chat"
+      android:textColor="?attr/colorPrimary"
+      android:textSize="14sp"
+      android:textStyle="bold" />
+
+    <TextView
+      android:id="@+id/fable_chat_empty"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="8dp"
+      android:text="@string/msg_fable_chat_empty"
+      android:textColor="?attr/colorOnSurfaceVariant"
+      android:textSize="13sp" />
+
+    <LinearLayout
+      android:id="@+id/fable_chat_list"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="vertical" />
+
+    <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="12dp"
+      android:gravity="center_vertical"
+      android:orientation="horizontal">
+
+      <ImageButton
+        android:id="@+id/fable_chat_attach"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/cd_fable_attach"
+        android:src="@drawable/ic_fable_attach"
+        app:tint="?attr/colorOnSurfaceVariant" />
+
+      <EditText
+        android:id="@+id/fable_chat_input"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:layout_weight="1"
+        android:hint="@string/msg_fable_chat_hint"
+        android:inputType="textMultiLine|textCapSentences"
+        android:maxLines="3"
+        android:textSize="14sp" />
+
+      <ImageButton
+        android:id="@+id/fable_chat_send"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/cd_fable_send"
+        android:src="@drawable/ic_fable_send"
+        app:tint="?attr/colorPrimary" />
+
+    </LinearLayout>
 
     <TextView
       android:id="@+id/fable_updated"
