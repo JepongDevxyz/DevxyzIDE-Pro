@@ -60,7 +60,17 @@ class DevxyzIDEInitScriptPlugin : Plugin<Gradle> {
           add("classpath", gradlePluginDep)
         }
 
-        repositories.addDependencyRepositories(rootProject.gradle.startParameter)
+        // Read the test-env properties from the root project itself, not
+        // from the start parameter: for included builds (e.g. build-logic),
+        // the derived start parameter does not carry the -P properties, so
+        // the repositories used to be configured for CI (snapshots repo,
+        // no local repository) while the dependency above was added at the
+        // simple version - the plugin was then searched for in remote
+        // repositories only and never found.
+        repositories.configureRepositories(
+          rootProject.isTestEnv,
+          rootProject.findProperty(_PROPERTY_MAVEN_LOCAL_REPOSITORY)?.toString() ?: ""
+        )
       }
     }
 
@@ -100,10 +110,6 @@ class DevxyzIDEInitScriptPlugin : Plugin<Gradle> {
     }
   }
 
-  private fun RepositoryHandler.addDependencyRepositories(startParams: StartParameter) {
-    val (isTestEnv, mavenLocalRepos) = getTestEnvProps(startParams)
-    configureRepositories(isTestEnv, mavenLocalRepos)
-  }
 
   private fun getTestEnvProps(startParameter: StartParameter): Pair<Boolean, String> {
     return startParameter.run {
