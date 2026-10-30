@@ -191,12 +191,8 @@ pkg_usable() {
 install_deb_extract() {
   deb_path="$1"
   deb_file="$2"
-  if [ ! -f "$deb_file" ]; then
-    print_info "Downloading $deb_file..."
-    if ! curl -fL -O "https://packages.androidide.com/apt/termux-main/$deb_path"; then
-      print_err "Failed to download $deb_file via curl."
-      return 1
-    fi
+  if ! download_deb "$deb_path" "$deb_file"; then
+    return 1
   fi
   deb_extract_dir="${deb_file%.deb}_extract"
   rm -rf "$deb_extract_dir"
@@ -214,18 +210,33 @@ install_deb_extract() {
   return 0
 }
 
-# download_deb downloads a .deb without extracting it.
+# download_deb downloads a .deb without extracting it. The output file is
+# named explicitly (-o) instead of -O: -O derives the local name from the
+# final URL, which produced "Failed to open the file ... No such file or
+# directory" + curl (23) write errors on device (krb5, 2026-10-30). Each
+# download is verified non-empty and retried up to 3 times.
 download_deb() {
-deb_path="$1"
-deb_file="$2"
-if [ ! -f "$deb_file" ]; then
-print_info "Downloading $deb_file..."
-if ! curl -fL -O "https://packages.androidide.com/apt/termux-main/$deb_path"; then
-print_err "Failed to download $deb_file via curl."
-return 1
-fi
-fi
-return 0
+  deb_path="$1"
+  deb_file="$2"
+  if [ -f "$deb_file" ] && [ -s "$deb_file" ]; then
+    return 0
+  fi
+  rm -f "$deb_file"
+  print_info "Downloading $deb_file..."
+  deb_try=1
+  while [ "$deb_try" -le 3 ]; do
+    if curl -fL -o "$deb_file" "https://packages.androidide.com/apt/termux-main/$deb_path" && [ -s "$deb_file" ]; then
+      return 0
+    fi
+    rm -f "$deb_file"
+    if [ "$deb_try" -lt 3 ]; then
+      print_warn "Download of $deb_file failed (attempt $deb_try of 3). Retrying..."
+      sleep 2
+    fi
+    deb_try=$((deb_try + 1))
+  done
+  print_err "Failed to download $deb_file via curl."
+  return 1
 }
 # finalize_jdk: renames a versioned JDK dir (e.g. opt/openjdk-17.0) to the
 # unversioned path the IDE expects ($SYSROOT/opt/openjdk), copies libz into
@@ -441,37 +452,11 @@ if [ "$apt_update_ok" = "false" ]; then
     rm -rf "$apt_bypass_dir"
     mkdir -p "$apt_bypass_dir"
     cd "$apt_bypass_dir"
-    for apt_bypass_file in \
-      dists/stable/main/binary-aarch64/git_2.43.0_aarch64.deb \
-      dists/stable/main/binary-aarch64/jq_1.7_aarch64.deb \
-      dists/stable/main/binary-aarch64/krb5_1.21.2_aarch64.deb \
-      dists/stable/main/binary-aarch64/ldns_1.8.3-2_aarch64.deb \
-      dists/stable/main/binary-aarch64/less_633-1_aarch64.deb \
-      dists/stable/main/binary-aarch64/libandroid-glob_0.6-2_aarch64.deb \
-      dists/stable/main/binary-aarch64/libandroid-support_28-3_aarch64.deb \
-      dists/stable/main/binary-aarch64/libc++_26b_aarch64.deb \
-      dists/stable/main/binary-aarch64/libcurl_8.5.0_aarch64.deb \
-      dists/stable/main/binary-aarch64/libdb_18.1.40-4_aarch64.deb \
-      dists/stable/main/binary-aarch64/libedit_20221030-3.1-0_aarch64.deb \
-      dists/stable/main/binary-aarch64/libiconv_1.17_aarch64.deb \
-      dists/stable/main/binary-aarch64/libjpeg-turbo_3.0.1_aarch64.deb \
-      dists/stable/main/binary-aarch64/libnghttp2_1.58.0_aarch64.deb \
-      dists/stable/main/binary-aarch64/libresolv-wrapper_1.1.7-4_aarch64.deb \
-      dists/stable/main/binary-aarch64/libssh2_1.11.0_aarch64.deb \
-      dists/stable/main/binary-aarch64/ncurses_6.4.20231001-3_aarch64.deb \
-      dists/stable/main/binary-aarch64/oniguruma_6.9.9_aarch64.deb \
-      dists/stable/main/binary-aarch64/openjdk-17_17.0-30_aarch64.deb \
-      dists/stable/main/binary-aarch64/openssh_9.5p1-2_aarch64.deb \
-      dists/stable/main/binary-aarch64/openssh-sftp-server_9.5p1-2_aarch64.deb \
-      dists/stable/main/binary-aarch64/openssl_1:3.1.4_aarch64.deb \
-      dists/stable/main/binary-aarch64/pcre2_10.42_aarch64.deb \
-      dists/stable/main/binary-aarch64/readline_8.2.1_aarch64.deb \
-      dists/stable/main/binary-aarch64/resolv-conf_1.3_aarch64.deb \
-      dists/stable/main/binary-aarch64/tar_1.35_aarch64.deb \
-      dists/stable/main/binary-aarch64/termux-auth_1.4-2_aarch64.deb \
-      dists/stable/main/binary-aarch64/zlib_1.3-3_aarch64.deb; do
-      deb_name=$(basename "$apt_bypass_file")
-      if ! download_deb "$apt_bypass_file" "$deb_name"; then
+    apt_bypass_debs="git_2.43.0_aarch64.deb jq_1.7_aarch64.deb krb5_1.21.2_aarch64.deb ldns_1.8.3-2_aarch64.deb less_633-1_aarch64.deb libandroid-glob_0.6-2_aarch64.deb libandroid-support_28-3_aarch64.deb libc++_26b_aarch64.deb libcurl_8.5.0_aarch64.deb libdb_18.1.40-4_aarch64.deb libedit_20221030-3.1-0_aarch64.deb libiconv_1.17_aarch64.deb libjpeg-turbo_3.0.1_aarch64.deb libnghttp2_1.58.0_aarch64.deb libresolv-wrapper_1.1.7-4_aarch64.deb libssh2_1.11.0_aarch64.deb ncurses_6.4.20231001-3_aarch64.deb oniguruma_6.9.9_aarch64.deb openjdk-17_17.0-30_aarch64.deb openssh_9.5p1-2_aarch64.deb openssh-sftp-server_9.5p1-2_aarch64.deb openssl_1:3.1.4_aarch64.deb pcre2_10.42_aarch64.deb readline_8.2.1_aarch64.deb resolv-conf_1.3_aarch64.deb tar_1.35_aarch64.deb termux-auth_1.4-2_aarch64.deb zlib_1.3-3_aarch64.deb"
+    for deb_name in $apt_bypass_debs; do
+      mkdir -p "$apt_bypass_dir"
+      cd "$apt_bypass_dir" || exit 1
+      if ! download_deb "dists/stable/main/binary-aarch64/$deb_name" "$deb_name"; then
         print_err "Aborting curl+extract bypass."
         exit 1
       fi
@@ -480,9 +465,15 @@ if [ "$apt_update_ok" = "false" ]; then
 export LD_LIBRARY_PATH="$PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export CURL_CA_BUNDLE="$PREFIX/etc/tls/cert.pem"
 export SSL_CERT_FILE="$PREFIX/etc/tls/cert.pem"
-# Phase 2: extract all downloaded .deb files.
-    for deb_file in *.deb; do
-    if ! install_deb_extract "$deb_file" "$deb_file"; then
+# Phase 2: verify every .deb is present, then extract them all.
+    for deb_name in $apt_bypass_debs; do
+    mkdir -p "$apt_bypass_dir"
+    cd "$apt_bypass_dir" || exit 1
+    if ! download_deb "dists/stable/main/binary-aarch64/$deb_name" "$deb_name"; then
+    print_err "Aborting curl+extract bypass."
+    exit 1
+    fi
+    if ! install_deb_extract "dists/stable/main/binary-aarch64/$deb_name" "$deb_name"; then
     print_err "Aborting curl+extract bypass."
     exit 1
     fi
