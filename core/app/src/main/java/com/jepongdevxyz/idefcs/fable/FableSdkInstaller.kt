@@ -109,6 +109,14 @@ object FableSdkInstaller {
       env["ANDROID_HOME"] = androidHome
       env["ANDROID_SDK_ROOT"] = androidHome
       env["HOME"] = Environment.HOME.absolutePath
+      // The bundled JDK is a Termux build: its java cannot even start unless
+      // the linker can see the prefix libraries (libz.so.1 for libjli.so) —
+      // "CANNOT LINK EXECUTABLE ... library libz.so.1 not found". Mirror the
+      // environment the IDE's own ToolingServerRunner gives its processes.
+      env["LD_LIBRARY_PATH"] = Environment.PREFIX.absolutePath + "/lib"
+      env["TMPDIR"] = Environment.TMP_DIR.absolutePath
+      env["CURL_CA_BUNDLE"] = Environment.PREFIX.absolutePath + "/etc/tls/cert.pem"
+      env["SSL_CERT_FILE"] = Environment.PREFIX.absolutePath + "/etc/tls/cert.pem"
       env["PATH"] = Environment.JAVA_HOME.absolutePath + "/bin:" +
         Environment.BIN_DIR.absolutePath + ":" + (env["PATH"] ?: "/system/bin")
       processBuilder.directory(Environment.ANDROID_HOME)
