@@ -29,19 +29,16 @@ import java.util.Collections
  * of the build output; when a build finishes it classifies failures with
  * [FableClassifier] and posts a proactive message into the project's Fable
  * chat (which is what makes the chat head appear). It never edits project
- * code; its one action is installing a missing SDK platform in-app (with a
- * chat report) when a build fails for exactly that reason. Every entry
- * point is failure-proof so it can never break the build service.
+ * code. When a build fails because an SDK platform is missing, it does NOT
+ * install silently: it raises an Allow/Deny card (FablePendingInstall) and
+ * only an explicit Allow runs the in-app install. Every entry point is
+ * failure-proof so it can never break the build service.
  */
 object FableBuildWatcher {
 
   private const val MAX_TAIL_LINES = 500
 
   private val tail = ArrayDeque<String>()
-
-  /** (project path + api) pairs Fable already tried to auto-install for. */
-  private val installAttempted: MutableSet<String> =
-    Collections.synchronizedSet(mutableSetOf<String>())
 
   fun onOutputLine(line: String) {
     try {
@@ -78,9 +75,6 @@ object FableBuildWatcher {
       val projectPath = projectDir
 
       if (success) {
-        synchronized(installAttempted) {
-          installAttempted.removeAll { it.startsWith("$projectPath:") }
-        }
         val wasFailed = FableChatStore.setLastBuildFailed(filesDir, projectPath, false)
         if (wasFailed) {
           FableChatStore.append(
@@ -118,10 +112,11 @@ object FableBuildWatcher {
   }
 
   /**
-   * Direct-in-app fix for a missing SDK platform: Fable installs it with the
-   * IDE's own command-line tools, reports the outcome in the chat, and
-   * restarts the build once on success. Attempted once per project+platform
-   * until a build succeeds, so a broken install can never loop forever.
+   * Missing SDK platform: do NOT install silently. Raise an Allow/Deny
+   * request ([FablePendingInstall]) and post a chat note pointing at the
+   * card; the panel renders the card and only an Allow runs the install
+   * via [runApprovedInstall]. One card per project at a time, and a denial
+   * is remembered for the session.
    */
   private fun maybeAutoInstallPlatform(
     context: Context,
@@ -130,9 +125,32 @@ object FableBuildWatcher {
     api: Int
   ) {
     try {
-      if (!installAttempted.add("$projectPath:$api")) {
+      if (!FablePendingInstall.request(projectPath, api)) {
         return
       }
+      FableChatStore.append(
+        filesDir,
+        projectPath,
+        FableChatMessage(
+          role = FableRole.FABLE,
+          text = "May card sa chat ko: Allow para i-install ko ang Android $api " +
+            "platform dito mismo sa app, Deny kung ayaw mo. Pag nag-Allow ka, " +
+            "ako na rin ang magsisimula ulit ng build.",
+          timeMillis = System.currentTimeMillis()
+        ),
+        countUnread = true
+      )
+    } catch (e: Exception) {
+      // Raising the request is best-effort only.
+    }
+  }
+
+  /**
+   * Runs an install the user explicitly allowed from the card; reports in
+   * the project chat and restarts the build on success.
+   */
+  fun runApprovedInstall(filesDir: java.io.File, projectPath: String, api: Int) {
+    try {
       FableChatStore.append(
         filesDir,
         projectPath,
@@ -165,12 +183,6 @@ object FableBuildWatcher {
               // The user can start the build manually; the platform is in.
             }
           } else {
-            // Let the NEXT failed build try the install again: a transient
-            // failure (network, timeout) must not disable the fix for the
-            // whole session. Still at most one attempt per failed build.
-            synchronized(installAttempted) {
-              installAttempted.remove("$projectPath:$api")
-            }
             FableChatStore.append(
               filesDir,
               projectPath,
@@ -189,7 +201,7 @@ object FableBuildWatcher {
         }
       }
     } catch (e: Exception) {
-      // The auto-install is best-effort only.
+      // The approved install is best-effort only.
     }
   }
 }

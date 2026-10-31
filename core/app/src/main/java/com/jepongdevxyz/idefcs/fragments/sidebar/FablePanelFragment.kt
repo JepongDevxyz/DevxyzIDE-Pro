@@ -25,12 +25,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import com.jepongdevxyz.idefcs.activities.editor.EditorActivityKt
 import com.jepongdevxyz.idefcs.databinding.FragmentFablePanelBinding
 import com.jepongdevxyz.idefcs.fable.FableArchiveReader
+import com.jepongdevxyz.idefcs.fable.FableBuildWatcher
 import com.jepongdevxyz.idefcs.fable.FableChatMessage
 import com.jepongdevxyz.idefcs.fable.FableChatStore
 import com.jepongdevxyz.idefcs.fable.FableChatUi
 import com.jepongdevxyz.idefcs.fable.FableIndexStore
 import com.jepongdevxyz.idefcs.fable.FableIntake
 import com.jepongdevxyz.idefcs.fable.FableLocalBrain
+import com.jepongdevxyz.idefcs.fable.FablePendingInstall
 import com.jepongdevxyz.idefcs.fable.FableRole
 import com.jepongdevxyz.idefcs.fable.KnowledgeIndex
 import com.jepongdevxyz.idefcs.fable.KnowledgeIndexBuilder
@@ -56,6 +58,10 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
   FragmentFablePanelBinding::inflate
 ) {
 
+  private val pendingListener: () -> Unit = {
+    _binding?.root?.post { renderActionCard() }
+  }
+
   private val chatListener: () -> Unit = {
     _binding?.root?.post { renderChat() }
   }
@@ -77,21 +83,26 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
     }
     binding.fableRefresh.setOnClickListener { rebuildIndex() }
     binding.fableChatSend.setOnClickListener { sendChatMessage() }
+    binding.fableActionAllow.setOnClickListener { onInstallCardAllow() }
+    binding.fableActionDeny.setOnClickListener { onInstallCardDeny() }
     binding.fableChatAttach.setOnClickListener {
       attachmentLauncher.launch(arrayOf("*/*"))
     }
 
     FableChatStore.addListener(chatListener)
+    FablePendingInstall.addListener(pendingListener)
     render()
   }
 
   override fun onDestroyView() {
     FableChatStore.removeListener(chatListener)
+    FablePendingInstall.removeListener(pendingListener)
     super.onDestroyView()
   }
 
   private fun render() {
     val binding = _binding ?: return
+    renderActionCard()
     val enabled = GeneralPreferences.fableEnabled
     binding.fableSwitch.isChecked = enabled
     binding.fableRefresh.isEnabled = enabled
@@ -190,6 +201,54 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
     val updated = SimpleDateFormat("MMM d, h:mm a", Locale.getDefault())
       .format(Date(index.builtAtMillis))
     binding.fableUpdated.text = getString(R.string.msg_fable_updated, updated)
+  }
+
+  // ------------------------------------------------------- approval card
+
+  /** Shows the Allow/Deny install card while a request is pending. */
+  private fun renderActionCard() {
+    val binding = _binding ?: return
+    val projectDir = if (GeneralPreferences.fableEnabled) currentProjectDir() else null
+    val api = projectDir?.let { FablePendingInstall.pendingApi(it.absolutePath) }
+    if (api == null) {
+      binding.fableActionCard.visibility = View.GONE
+      return
+    }
+    binding.fableActionTitle.text =
+      getString(R.string.msg_fable_install_card_title, api)
+    binding.fableActionBody.text =
+      getString(R.string.msg_fable_install_card_body, api)
+    binding.fableActionCard.visibility = View.VISIBLE
+  }
+
+  private fun onInstallCardAllow() {
+    val projectDir = currentProjectDir() ?: return
+    val projectPath = projectDir.absolutePath
+    val api = FablePendingInstall.consumeAllowed(projectPath) ?: run {
+      renderActionCard()
+      return
+    }
+    renderActionCard()
+    FableBuildWatcher.runApprovedInstall(
+      requireContext().filesDir, projectPath, api)
+  }
+
+  private fun onInstallCardDeny() {
+    val projectDir = currentProjectDir() ?: return
+    val projectPath = projectDir.absolutePath
+    FablePendingInstall.deny(projectPath)
+    FableChatStore.append(
+      requireContext().filesDir,
+      projectPath,
+      FableChatMessage(
+        FableRole.FABLE,
+        "Sige, hindi ko i-install ang platform. Lalabas ulit ang card " +
+          "sa susunod na session kung kailangan pa rin ito ng build.",
+        System.currentTimeMillis()
+      ),
+      countUnread = false
+    )
+    renderActionCard()
   }
 
   // ------------------------------------------------------------------ chat

@@ -17,6 +17,7 @@
 
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
   xmlns:app="http://schemas.android.com/apk/res-auto"
+  xmlns:tools="http://schemas.android.com/tools"
   android:layout_width="match_parent"
   android:layout_height="match_parent"
   android:background="?attr/colorSurfaceContainer"
@@ -144,6 +145,65 @@
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
       android:orientation="vertical" />
+
+    <com.google.android.material.card.MaterialCardView
+      android:id="@+id/fable_action_card"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="12dp"
+      android:visibility="gone"
+      app:cardBackgroundColor="?attr/colorSurfaceVariant"
+      app:cardCornerRadius="12dp"
+      app:cardElevation="0dp">
+
+      <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <TextView
+          android:id="@+id/fable_action_title"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:textColor="?attr/colorOnSurface"
+          android:textSize="14sp"
+          android:textStyle="bold"
+          tools:text="I-install ko ba ang Android 34 platform?" />
+
+        <TextView
+          android:id="@+id/fable_action_body"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:layout_marginTop="4dp"
+          android:textColor="?attr/colorOnSurfaceVariant"
+          android:textSize="13sp"
+          tools:text="Kailangan ito ng project kaya pumalya ang build." />
+
+        <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:layout_marginTop="10dp"
+          android:gravity="end"
+          android:orientation="horizontal">
+
+          <com.google.android.material.button.MaterialButton
+            android:id="@+id/fable_action_deny"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/btn_fable_deny" />
+
+          <com.google.android.material.button.MaterialButton
+            android:id="@+id/fable_action_allow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/btn_fable_allow" />
+
+        </LinearLayout>
+      </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
     <LinearLayout
       android:layout_width="match_parent"
