@@ -212,7 +212,27 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
     FableChatUi.renderMessages(binding.fableChatList, log)
     binding.fableChatEmpty.visibility = if (log.messages.isEmpty()) View.VISIBLE else View.GONE
     binding.fableChatEmpty.text = getString(R.string.msg_fable_chat_empty)
-    FableChatStore.markAllRead(requireContext().filesDir, projectDir.absolutePath)
+    if (isPanelOnScreen()) {
+      FableChatStore.markAllRead(requireContext().filesDir, projectDir.absolutePath)
+    }
+  }
+
+  /**
+   * The panel lives inside the editor's start drawer: its view exists (and
+   * re-renders on every chat change) even while the drawer is closed and the
+   * user cannot see it. Marking messages read in that state kills the chat
+   * head's badge the instant a message arrives, so only mark read while the
+   * drawer is genuinely open.
+   */
+  private fun isPanelOnScreen(): Boolean {
+    var v: View? = view
+    while (v != null) {
+      if (v is androidx.drawerlayout.widget.DrawerLayout) {
+        return v.isDrawerOpen(androidx.core.view.GravityCompat.START)
+      }
+      v = v.parent as? View
+    }
+    return false
   }
 
   private fun sendChatMessage() {

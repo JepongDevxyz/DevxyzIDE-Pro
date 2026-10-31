@@ -85,6 +85,17 @@ class EditorSidebarFragment : FragmentWithBinding<FragmentEditorSidebarBinding>(
     }
   }
 
+  /** The route of the sidebar's current destination, or null if unavailable. */
+  internal fun currentDestinationRoute(): String? {
+    return try {
+      val binding = _binding ?: return null
+      binding.fragmentContainer.getFragment<NavHostFragment>().navController
+        .currentDestination?.route
+    } catch (e: Exception) {
+      null
+    }
+  }
+
   /**
    * Get the (nullable) binding object for this fragment.
    */

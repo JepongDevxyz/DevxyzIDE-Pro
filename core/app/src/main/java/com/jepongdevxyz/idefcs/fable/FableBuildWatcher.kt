@@ -165,6 +165,12 @@ object FableBuildWatcher {
               // The user can start the build manually; the platform is in.
             }
           } else {
+            // Let the NEXT failed build try the install again: a transient
+            // failure (network, timeout) must not disable the fix for the
+            // whole session. Still at most one attempt per failed build.
+            synchronized(installAttempted) {
+              installAttempted.remove("$projectPath:$api")
+            }
             FableChatStore.append(
               filesDir,
               projectPath,

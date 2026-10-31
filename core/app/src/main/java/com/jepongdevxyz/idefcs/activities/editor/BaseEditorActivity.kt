@@ -522,9 +522,34 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
         }
       }
       FableChatStore.addListener(fableChatListener)
+      binding.root.addDrawerListener(object :
+        androidx.drawerlayout.widget.DrawerLayout.DrawerListener {
+        override fun onDrawerOpened(drawerView: View) = markFableReadIfShowing()
+        override fun onDrawerClosed(drawerView: View) = markFableReadIfShowing()
+        override fun onDrawerSlide(drawerView: View, slideOffset: Float) {}
+        override fun onDrawerStateChanged(newState: Int) {}
+      })
       refreshFableHead()
     } catch (e: Exception) {
       log.error("Failed to set up Fable chat head", e)
+    }
+  }
+
+  /**
+   * When the drawer opens or closes while Fable is the sidebar's current
+   * destination, the user has actually seen the chat: clear the unread count
+   * (and with it the chat head). Covers reading via the rail or the head.
+   */
+  private fun markFableReadIfShowing() {
+    try {
+      val route = binding.drawerSidebar.getFragment<EditorSidebarFragment>()
+        .currentDestinationRoute()
+      if (route != FableSidebarAction.ID) return
+      val projectPath = IProjectManager.getInstance().projectDirPath ?: return
+      FableChatStore.markAllRead(filesDir, projectPath)
+      refreshFableHead()
+    } catch (e: Exception) {
+      // Best-effort only; the head must never break the editor.
     }
   }
 
