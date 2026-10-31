@@ -113,4 +113,40 @@
     android:id="@+id/diagnosticInfo"
     layout="@layout/layout_diagnostic_info" />
 
+  <FrameLayout
+    android:id="@+id/fable_head"
+    android:layout_width="56dp"
+    android:layout_height="56dp"
+    android:layout_gravity="bottom|end"
+    android:layout_marginEnd="16dp"
+    android:layout_marginBottom="88dp"
+    android:visibility="gone">
+
+    <ImageView
+      android:id="@+id/fable_head_icon"
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:background="@drawable/bg_fable_head"
+      android:contentDescription="@string/cd_fable_head"
+      android:padding="14dp"
+      android:src="@drawable/ic_fable"
+      app:tint="?attr/colorOnPrimary" />
+
+    <TextView
+      android:id="@+id/fable_badge"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_gravity="top|end"
+      android:background="@drawable/bg_fable_badge"
+      android:minWidth="20dp"
+      android:paddingHorizontal="5dp"
+      android:paddingVertical="1dp"
+      android:textColor="?attr/colorOnError"
+      android:textSize="11sp"
+      android:textStyle="bold"
+      android:visibility="gone"
+      tools:text="3" />
+
+  </FrameLayout>
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

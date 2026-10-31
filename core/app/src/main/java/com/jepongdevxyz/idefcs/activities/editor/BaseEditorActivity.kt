@@ -460,7 +460,7 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
   // region Fable chat head + intake auto-build
   private fun refreshFableHead() {
     try {
-      val head = binding.fableHead
+      val head = binding.content.fableHead
       if (!GeneralPreferences.fableEnabled) {
         head.visibility = View.GONE
         return
@@ -476,9 +476,8 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
         return
       }
       head.visibility = View.VISIBLE
-      binding.fableBadge.visibility = View.VISIBLE
-      binding.fableBadge.text = unread.toString()
-      head.post { positionFableHead() }
+      binding.content.fableBadge.visibility = View.VISIBLE
+      binding.content.fableBadge.text = unread.toString()
     } catch (e: Exception) {
       // The chat head is decorative; it must never break the editor.
     }
@@ -486,7 +485,7 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
 
   private fun setupFableHead() {
     try {
-      val head = binding.fableHead
+      val head = binding.content.fableHead
       var downY = 0f
       var startOffset = 0f
       var dragged = false
@@ -503,7 +502,7 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
             if (kotlin.math.abs(dy) > 12f) dragged = true
             val maxShift = resources.displayMetrics.heightPixels * 0.35f
             fableHeadDragOffsetY = (startOffset + dy).coerceIn(-maxShift, maxShift)
-            positionFableHead()
+            view.translationY = fableHeadDragOffsetY
             true
           }
           android.view.MotionEvent.ACTION_UP -> {
@@ -523,9 +522,7 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
         }
       }
       FableChatStore.addListener(fableChatListener)
-      binding.root.viewTreeObserver.addOnGlobalLayoutListener(fableHeadLayoutListener)
       refreshFableHead()
-      positionFableHead()
     } catch (e: Exception) {
       log.error("Failed to set up Fable chat head", e)
     }
@@ -536,33 +533,6 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
   }
 
   private var fableHeadDragOffsetY = 0f
-
-  private val fableHeadLayoutListener =
-    android.view.ViewTreeObserver.OnGlobalLayoutListener { positionFableHead() }
-
-  /**
-   * The head is a plain content child of the DrawerLayout on purpose: any
-   * layout_gravity would make DrawerLayout treat it as a drawer and park it
-   * off-canvas. Its bottom-end position is applied as a translation against
-   * the editor's real size, so it also survives rotation and resizing.
-   */
-  private fun positionFableHead() {
-    try {
-      val head = binding.fableHead
-      val parent = binding.root
-      if (parent.width == 0 || parent.height == 0 || head.width == 0) {
-        return
-      }
-      val density = resources.displayMetrics.density
-      val marginEnd = 16f * density
-      val marginBottom = 88f * density
-      head.translationX = (parent.width - head.width - marginEnd).coerceAtLeast(0f)
-      val baseY = (parent.height - head.height - marginBottom).coerceAtLeast(0f)
-      head.translationY = baseY + fableHeadDragOffsetY
-    } catch (e: Exception) {
-      // Positioning is best-effort; visibility is handled separately.
-    }
-  }
 
   private fun maybeRunFableIntakeBuild() {
     try {
@@ -609,11 +579,6 @@ abstract class BaseEditorActivity : EdgeToEdgeIDEActivity(), TabLayout.OnTabSele
 
   override fun onDestroy() {
     FableChatStore.removeListener(fableChatListener)
-    try {
-      binding.root.viewTreeObserver.removeOnGlobalLayoutListener(fableHeadLayoutListener)
-    } catch (e: Exception) {
-      // Binding may already be gone; nothing to clean.
-    }
     checkIsDestroying()
     preDestroy()
     super.onDestroy()
