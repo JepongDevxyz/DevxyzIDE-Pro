@@ -211,6 +211,80 @@ object FableSdkInstaller {
     }
   }
 
+  /**
+   * Stops the Gradle daemon(s) for this IDE's Gradle user home. The
+   * daemon loads the Android SDK once and caches the platform list for
+   * its whole lifetime: a platform installed while a daemon from the
+   * failed build is still alive stays invisible to the next build
+   * ("android.jar does not exist" even though the file is on disk).
+   * Stopping the daemon forces the restarted build to rescan the SDK.
+   * Best-effort: uses the project's own gradlew when present, else the
+   * downloaded distribution's gradle; silently skips if neither exists.
+   */
+  fun stopGradleDaemons(projectPath: String) {
+    try {
+      val projectDir = File(projectPath)
+      val gradlew = File(projectDir, "gradlew")
+      val command: List<String>? = when {
+        gradlew.isFile -> listOf("sh", gradlew.absolutePath, "--stop")
+        else -> findGradleDistribution()?.let {
+          listOf("sh", File(it, "bin/gradle").absolutePath, "--stop")
+        }
+      }
+      if (command == null) {
+        return
+      }
+      val processBuilder = ProcessBuilder(command)
+      processBuilder.directory(projectDir)
+      val env = processBuilder.environment()
+      env["JAVA_HOME"] = Environment.JAVA_HOME.absolutePath
+      env["ANDROID_HOME"] = Environment.ANDROID_HOME.absolutePath
+      env["ANDROID_SDK_ROOT"] = Environment.ANDROID_HOME.absolutePath
+      env["GRADLE_USER_HOME"] = Environment.GRADLE_USER_HOME.absolutePath
+      env["HOME"] = Environment.HOME.absolutePath
+      env["LD_LIBRARY_PATH"] = Environment.PREFIX.absolutePath + "/lib"
+      env["TMPDIR"] = Environment.TMP_DIR.absolutePath
+      env["PATH"] = Environment.JAVA_HOME.absolutePath + "/bin:" +
+        Environment.BIN_DIR.absolutePath + ":" + (env["PATH"] ?: "/system/bin")
+      processBuilder.redirectErrorStream(true)
+      val process = processBuilder.start()
+      try {
+        process.outputStream.close()
+      } catch (e: Exception) {
+        // No input is needed for --stop.
+      }
+      // Output of --stop is a few lines; drain it so the pipe cannot fill.
+      Thread {
+        try {
+          process.inputStream.bufferedReader().use { it.readText() }
+        } catch (e: Exception) {
+          // Stream closed.
+        }
+      }.apply { isDaemon = true }.start()
+      val finished = process.waitFor(60, TimeUnit.SECONDS)
+      if (!finished) {
+        process.destroyForcibly()
+      }
+    } catch (e: Exception) {
+      // Best-effort only: the restart proceeds either way.
+    }
+  }
+
+  /** Finds an unpacked Gradle distribution in the IDE's Gradle user home. */
+  private fun findGradleDistribution(): File? {
+    return try {
+      val dists = File(Environment.GRADLE_USER_HOME, "wrapper/dists")
+      if (!dists.isDirectory) {
+        return null
+      }
+      dists.walkTopDown().maxDepth(4).firstOrNull {
+        it.isDirectory && File(it, "bin/gradle").isFile
+      }
+    } catch (e: Exception) {
+      null
+    }
+  }
+
   /** Pre-accepts the standard Android SDK license hashes so no prompt appears. */
   private fun writeLicenses() {
     val licensesDir = File(Environment.ANDROID_HOME, "licenses")

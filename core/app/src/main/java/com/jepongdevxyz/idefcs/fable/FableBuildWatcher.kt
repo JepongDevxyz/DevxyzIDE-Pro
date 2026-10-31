@@ -224,6 +224,13 @@ object FableBuildWatcher {
     val attemptAt = System.currentTimeMillis()
     TaskExecutor.executeAsync(
       Callable {
+        // The daemon from the failed build cached the SDK WITHOUT the new
+        // platform; stop it so the restarted build rescans the SDK.
+        try {
+          FableSdkInstaller.stopGradleDaemons(projectPath)
+        } catch (e: Exception) {
+          // Best-effort; the restart proceeds either way.
+        }
         var future: java.util.concurrent.CompletableFuture<*>? = null
         var tries = 0
         while (future == null && tries < 4) {
