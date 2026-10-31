@@ -26,6 +26,7 @@ import com.jepongdevxyz.idefcs.activities.editor.EditorActivityKt
 import com.jepongdevxyz.idefcs.databinding.FragmentFablePanelBinding
 import com.jepongdevxyz.idefcs.fable.FableArchiveReader
 import com.jepongdevxyz.idefcs.fable.FableBuildWatcher
+import com.jepongdevxyz.idefcs.fable.FableInstallProgress
 import com.jepongdevxyz.idefcs.fable.FableChatMessage
 import com.jepongdevxyz.idefcs.fable.FableChatStore
 import com.jepongdevxyz.idefcs.fable.FableChatUi
@@ -62,6 +63,10 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
     _binding?.root?.post { renderActionCard() }
   }
 
+  private val progressListener: () -> Unit = {
+    _binding?.root?.post { renderProgress() }
+  }
+
   private val chatListener: () -> Unit = {
     _binding?.root?.post { renderChat() }
   }
@@ -91,18 +96,21 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
 
     FableChatStore.addListener(chatListener)
     FablePendingInstall.addListener(pendingListener)
+    FableInstallProgress.addListener(progressListener)
     render()
   }
 
   override fun onDestroyView() {
     FableChatStore.removeListener(chatListener)
     FablePendingInstall.removeListener(pendingListener)
+    FableInstallProgress.removeListener(progressListener)
     super.onDestroyView()
   }
 
   private fun render() {
     val binding = _binding ?: return
     renderActionCard()
+    renderProgress()
     val enabled = GeneralPreferences.fableEnabled
     binding.fableSwitch.isChecked = enabled
     binding.fableRefresh.isEnabled = enabled
@@ -219,6 +227,26 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
     binding.fableActionBody.text =
       getString(R.string.msg_fable_install_card_body, api)
     binding.fableActionCard.visibility = View.VISIBLE
+  }
+
+  /** Live install progress (real % parsed from sdkmanager's own output). */
+  private fun renderProgress() {
+    val binding = _binding ?: return
+    val progress = FableInstallProgress.state
+    if (!progress.running) {
+      binding.fableProgressBlock.visibility = View.GONE
+      return
+    }
+    binding.fableProgressBlock.visibility = View.VISIBLE
+    if (progress.percent >= 0) {
+      binding.fableProgressBar.isIndeterminate = false
+      binding.fableProgressBar.setProgressCompat(progress.percent, true)
+      binding.fableProgressStatus.text =
+        "${progress.status} ${progress.percent}%"
+    } else {
+      binding.fableProgressBar.isIndeterminate = true
+      binding.fableProgressStatus.text = progress.status
+    }
   }
 
   private fun onInstallCardAllow() {

@@ -206,6 +206,30 @@
     </com.google.android.material.card.MaterialCardView>
 
     <LinearLayout
+      android:id="@+id/fable_progress_block"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="12dp"
+      android:orientation="vertical"
+      android:visibility="gone">
+
+      <TextView
+        android:id="@+id/fable_progress_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="13sp"
+        tools:text="Ini-install ang Android 34 platform… 45%" />
+
+      <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/fable_progress_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp" />
+
+    </LinearLayout>
+
+    <LinearLayout
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
       android:layout_marginTop="12dp"

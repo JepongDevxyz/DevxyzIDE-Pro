@@ -78,16 +78,23 @@ object FableSdkInstaller {
    * whether the platform is verifiably installed afterwards, plus a short
    * detail string for failure cases.
    */
-  fun installPlatform(api: Int, onDone: (Boolean, String) -> Unit) {
+  fun installPlatform(
+    api: Int,
+    onProgress: (percent: Int, status: String) -> Unit = { _, _ -> },
+    onDone: (Boolean, String) -> Unit
+  ) {
     TaskExecutor.executeAsync(
-      Callable { installBlocking(api) }
+      Callable { installBlocking(api, onProgress) }
     ) { result ->
       val (success, detail) = result ?: (false to "walang resulta ang installer")
       onDone(success, detail)
     }
   }
 
-  private fun installBlocking(api: Int): Pair<Boolean, String> {
+  private fun installBlocking(
+    api: Int,
+    onProgress: (percent: Int, status: String) -> Unit
+  ): Pair<Boolean, String> {
     if (isPlatformInstalled(api)) {
       return true to "naka-install na"
     }
@@ -142,6 +149,9 @@ object FableSdkInstaller {
       stdinThread.start()
 
       val output = StringBuilder()
+      val percentPattern = Regex("(\\d{1,3})%")
+      var lastPercent = -2
+      var lastPhase = ""
       val stdoutThread = Thread {
         try {
           process.inputStream.bufferedReader().use { reader ->
@@ -149,6 +159,30 @@ object FableSdkInstaller {
               val line = reader.readLine() ?: break
               synchronized(output) {
                 if (output.length < 8000) output.append(line).append('\n')
+              }
+              // sdkmanager renders its progress as "[===>  ] NN% <phase>"
+              // lines; forward real percentages (and phase changes) so the
+              // UI progress bar tracks the install instead of guessing.
+              val pct = percentPattern.find(line)?.groupValues?.get(1)
+                ?.toIntOrNull()?.coerceIn(0, 100) ?: -1
+              val phase = when {
+                line.contains("Download", ignoreCase = true) ->
+                  "Dina-download ang Android $api platform…"
+                line.contains("Unzip", ignoreCase = true) ||
+                  line.contains("Install", ignoreCase = true) ->
+                  "Ini-install ang Android $api platform…"
+                line.contains("Loading", ignoreCase = true) ->
+                  "Hinahanda ang installer…"
+                else -> lastPhase
+              }
+              if (pct != lastPercent || phase != lastPhase) {
+                lastPercent = pct
+                lastPhase = phase
+                try {
+                  onProgress(pct, phase.ifEmpty { "Tumatakbo ang installer…" })
+                } catch (e: Exception) {
+                  // Progress reporting must never break the install.
+                }
               }
             }
           }

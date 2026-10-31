@@ -162,7 +162,12 @@ object FableBuildWatcher {
         ),
         countUnread = true
       )
-      FableSdkInstaller.installPlatform(api) { success, detail ->
+      FableInstallProgress.begin(api)
+      FableSdkInstaller.installPlatform(
+        api,
+        onProgress = { percent, status -> FableInstallProgress.update(percent, status) }
+      ) { success, detail ->
+        FableInstallProgress.end()
         try {
           if (success) {
             FableChatStore.append(
