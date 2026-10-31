@@ -270,8 +270,8 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
       projectPath,
       FableChatMessage(
         FableRole.FABLE,
-        "Sige, hindi ko i-install ang platform. I-build mo lang ulit " +
-          "kung kailangan mo na — lalabas ulit ang card.",
+        "Okay, I won't install the platform. Just build again " +
+          "when you need it — the card will show up again.",
         System.currentTimeMillis()
       ),
       countUnread = false
@@ -376,7 +376,7 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
         }
       }
     ) { outcome ->
-      val message = outcome?.second ?: "Hindi ko nabasa ang file na iyon."
+      val message = outcome?.second ?: "I couldn't read that file."
       val importedDir = outcome?.first
       FableChatStore.append(
         filesDir,

@@ -82,7 +82,7 @@ object FableBuildWatcher {
             projectPath,
             FableChatMessage(
               role = FableRole.FABLE,
-              text = "Ayos — pumasa na ulit ang build. Wala nang nakabara mula sa huling failure.",
+              text = "All good — the build passes again. Nothing is left blocking it from the last failure.",
               timeMillis = System.currentTimeMillis()
             ),
             countUnread = true
@@ -133,9 +133,9 @@ object FableBuildWatcher {
         projectPath,
         FableChatMessage(
           role = FableRole.FABLE,
-          text = "May card sa chat ko: Allow para i-install ko ang Android $api " +
-            "platform dito mismo sa app, Deny kung ayaw mo. Pag nag-Allow ka, " +
-            "ako na rin ang magsisimula ulit ng build.",
+          text = "There's a card in my chat: Allow to let me install the Android $api " +
+            "platform right here in the app, Deny if you don't want to. When you tap Allow, " +
+            "I'll restart the build myself.",
           timeMillis = System.currentTimeMillis()
         ),
         countUnread = true
@@ -156,8 +156,8 @@ object FableBuildWatcher {
         projectPath,
         FableChatMessage(
           role = FableRole.FABLE,
-          text = "Ini-install ko na ang Android $api platform dito mismo sa app — " +
-            "hindi mo na kailangang mag-Terminal. Aabisuhan kita pag tapos.",
+          text = "I'm installing the Android $api platform right here in the app — " +
+            "no need to open a Terminal. I'll let you know when it's done.",
           timeMillis = System.currentTimeMillis()
         ),
         countUnread = true
@@ -175,8 +175,8 @@ object FableBuildWatcher {
               projectPath,
               FableChatMessage(
                 role = FableRole.FABLE,
-                text = "Tapos na — naka-install na ang Android $api platform. " +
-                  "Sisimulan ko ulit ang build (assembleDebug).",
+                text = "Done — the Android $api platform is installed. " +
+                  "I'll restart the build (assembleDebug).",
                 timeMillis = System.currentTimeMillis()
               ),
               countUnread = true
@@ -193,8 +193,8 @@ object FableBuildWatcher {
               projectPath,
               FableChatMessage(
                 role = FableRole.NOTICE,
-                text = "Sinubukan kong i-install ang Android $api platform pero hindi " +
-                  "natuloy ($detail). Manual na paraan sa Terminal ng IDE: " +
+                text = "I tried to install the Android $api platform but it " +
+                  "didn't finish ($detail). Manual way, in the IDE's Terminal: " +
                   FableSdkInstaller.manualCommand(api),
                 timeMillis = System.currentTimeMillis()
               ),

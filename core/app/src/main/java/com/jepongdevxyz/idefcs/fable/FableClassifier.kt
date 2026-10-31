@@ -59,9 +59,9 @@ object FableClassifier {
     ) {
       return Result(
         Kind.OUT_OF_MEMORY,
-        "May napansin ako: naubusan ng memory ang build (OutOfMemoryError). " +
-          "Karaniwang lunas ay liitan ang heap ng Gradle/Kotlin sa gradle.properties, " +
-          "o isara ang ibang mabibigat na project habang nagbu-build."
+        "I noticed something: the build ran out of memory (OutOfMemoryError). " +
+          "The usual fix is to lower the Gradle/Kotlin heap in gradle.properties, " +
+          "or close other heavy projects while building."
       )
     }
 
@@ -71,9 +71,9 @@ object FableClassifier {
     ) {
       return Result(
         Kind.LOCK_OR_DAEMON,
-        "May napansin ako: may lumang Gradle daemon o lock na humahawak sa project, " +
-          "kaya hindi makausad ang build. Karaniwang nalilinis ito ng isang restart ng phone; " +
-          "huwag mag-Clear Data at huwag burahin ang buong .gradle."
+        "I noticed something: a stale Gradle daemon or lock is holding the project, " +
+          "so the build cannot proceed. A phone restart usually clears this; " +
+          "do not Clear Data and do not delete the whole .gradle."
       )
     }
 
@@ -82,10 +82,10 @@ object FableClassifier {
       val detail = if (coordinate != null) " ($coordinate)" else ""
       return Result(
         Kind.PLUGIN_RESOLUTION,
-        "May napansin ako: hindi naresolba ang isang Gradle plugin$detail noong " +
-          "kino-configure ang project. Tiningnan ko ang mga repository na hinanapan — " +
-          "kung wala roon ang local plugin repository ng IDE, iyon ang unang dapat ayusin; " +
-          "kung naroon naman ito, maaaring network o nawawalang plugin version ang dahilan."
+        "I noticed something: a Gradle plugin$detail could not be resolved while " +
+          "configuring the project. I checked the repositories that were searched — " +
+          "if the IDE's local plugin repository is not among them, that is the first thing to fix; " +
+          "if it is there, the cause may be the network or a missing plugin version."
       )
     }
 
@@ -95,9 +95,9 @@ object FableClassifier {
     if (missingApi != null) {
       return Result(
         Kind.SDK_MISSING,
-        "May napansin ako: kulang ang Android $missingApi platform sa SDK ng IDE — " +
-          "ito ang kailangan ng project (compileSdk $missingApi), kaya huminto ang " +
-          "configuration. Kailangan muna itong ma-install.",
+        "I noticed something: the Android $missingApi platform is missing from the IDE's SDK — " +
+          "the project needs it (compileSdk $missingApi), so the " +
+          "configuration stopped. It has to be installed first.",
         missingApi
       )
     }
@@ -108,9 +108,9 @@ object FableClassifier {
     ) {
       return Result(
         Kind.SDK_MISSING,
-        "May napansin ako: hindi makita ng build ang Android SDK o ang platform na " +
-          "kailangan nito. Suriin kung tapos ang IDE setup at kung naka-install ang " +
-          "platform na hinihingi ng project."
+        "I noticed something: the build cannot find the Android SDK or the platform it " +
+          "needs. Check that the IDE setup finished and that the platform " +
+          "the project asks for is installed."
       )
     }
 
@@ -133,8 +133,8 @@ object FableClassifier {
       val listing = compileErrors.joinToString("\n") { "• $it" }
       return Result(
         Kind.COMPILE_ERROR,
-        "May napansin ako: may error sa code ang build.\n$listing\n" +
-          "Iyan ang unang dapat ayusin — nasa file at linya na binanggit ang problema."
+        "I noticed something: the build has a code error.\n$listing\n" +
+          "That is the first thing to fix — the problem is at the file and line mentioned."
       )
     }
 
@@ -143,9 +143,9 @@ object FableClassifier {
       val detail = if (coordinate != null) ": $coordinate" else ""
       return Result(
         Kind.DEPENDENCY_NOT_FOUND,
-        "May napansin ako: may dependency na hindi mahanap$detail. Suriin ang " +
-          "eksaktong coordinate at bersyon sa build file, at kung online ang device — " +
-          "ang maling bersyon at ang kawalan ng network ang karaniwang dahilan."
+        "I noticed something: a dependency could not be found$detail. Check the " +
+          "exact coordinate and version in the build file, and whether the device is online — " +
+          "a wrong version and no network are the usual causes."
       )
     }
 
@@ -154,9 +154,9 @@ object FableClassifier {
       val detail = if (project != null) " ($project)" else ""
       return Result(
         Kind.CONFIGURE_FAILED,
-        "May napansin ako: pumalya ang configuration ng project$detail. Ang eksaktong " +
-          "sanhi ay nasa \"What went wrong\" na bahagi ng build output — buksan mo iyon at " +
-          "ipakita sa akin kung gusto mong tulungan kitang basahin."
+        "I noticed something: project configuration failed$detail. The exact " +
+          "cause is in the \"What went wrong\" section of the build output — open it and " +
+          "show it to me if you want help reading it."
       )
     }
 
@@ -164,15 +164,15 @@ object FableClassifier {
     return if (whatWentWrong != null) {
       Result(
         Kind.UNKNOWN,
-        "May napansin ako: pumalya ang build. Ito ang sabi ng Gradle:\n$whatWentWrong\n" +
-          "Hindi pa ito klase na kilala ng lokal kong classifier — ang AI analysis ay " +
-          "darating sa susunod na phase."
+        "I noticed something: the build failed. Gradle says:\n$whatWentWrong\n" +
+          "This is not a class my local classifier knows yet — AI analysis " +
+          "arrives in the next phase."
       )
     } else {
       Result(
         Kind.UNKNOWN,
-        "May napansin ako: pumalya ang build, pero walang malinaw na sanhi sa huling " +
-          "bahagi ng output na nakita ko. Buksan ang Build output at ipakita sa akin ang " +
+        "I noticed something: the build failed, but there is no clear cause in the last " +
+          "part of the output I saw. Open the Build output and show me the " +
           "\"What went wrong\" na bahagi."
       )
     }

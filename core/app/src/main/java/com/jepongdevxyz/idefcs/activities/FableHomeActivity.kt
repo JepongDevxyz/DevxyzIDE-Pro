@@ -184,7 +184,7 @@ class FableHomeActivity : EdgeToEdgeIDEActivity() {
         }
       }
     ) { outcome ->
-      val message = outcome?.second ?: "Hindi ko nabasa ang file na iyon."
+      val message = outcome?.second ?: "I couldn't read that file."
       val importedDir = outcome?.first
       FableChatStore.append(
         appFilesDir,

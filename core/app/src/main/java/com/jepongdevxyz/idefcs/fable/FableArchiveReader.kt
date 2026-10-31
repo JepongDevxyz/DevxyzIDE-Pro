@@ -55,20 +55,20 @@ object FableArchiveReader {
         extension in textExtensions || mime.startsWith("text/") ->
           summarizeText(context, uri, name, size)
         mime.startsWith("image/") ->
-          "Natanggap ko ang larawan na $name (${formatSize(size)}).\n" +
-            "Ang pag-intindi sa laman ng larawan ay darating kasama ng AI phase — " +
-            "sa ngayon ay metadata lang ang nababasa ko nang lokal."
+          "I received the image $name (${formatSize(size)}).\n" +
+            "Understanding what's inside an image arrives with the AI phase — " +
+            "for now I can only read its metadata locally."
         mime.startsWith("video/") ->
-          "Natanggap ko ang video na $name (${formatSize(size)}).\n" +
-            "Ang panonood at pag-intindi ng video ay darating kasama ng AI phase — " +
-            "sa ngayon ay metadata lang ang nababasa ko nang lokal."
+          "I received the video $name (${formatSize(size)}).\n" +
+            "Watching and understanding video arrives with the AI phase — " +
+            "for now I can only read its metadata locally."
         else ->
-          "Natanggap ko ang file na $name (${formatSize(size)}" +
+          "I received the file $name (${formatSize(size)}" +
             (if (mime.isNotEmpty()) ", $mime" else "") + "). " +
-            "Hindi ko pa nababasa ang ganitong uri ng file nang lokal."
+            "I can't read this kind of file locally yet."
       }
     } catch (e: Exception) {
-      "Hindi ko nabasa ang $name: ${e.message ?: "nagkaroon ng error habang binabasa ito."}"
+      "I couldn't read $name: ${e.message ?: "an error occurred while reading it."}"
     }
   }
 
@@ -80,7 +80,7 @@ object FableArchiveReader {
     extension: String
   ): String {
     val out = StringBuilder()
-    out.append("Binasa ko ang ").append(name).append(" (").append(formatSize(size)).append(").")
+    out.append("I read ").append(name).append(" (").append(formatSize(size)).append(").")
 
     if (extension == "apk") {
       val apkInfo = readApkInfo(context, uri)
@@ -104,9 +104,9 @@ object FableArchiveReader {
       }
     }
 
-    out.append("\nLaman: ").append(entries.size).append(" files")
+    out.append("\nContents: ").append(entries.size).append(" files")
     if (totalUncompressed > 0) {
-      out.append(" (").append(formatSize(totalUncompressed)).append(" pag na-extract)")
+      out.append(" (").append(formatSize(totalUncompressed)).append(" when extracted)")
     }
     out.append('.')
 
@@ -116,7 +116,7 @@ object FableArchiveReader {
       if (entrySize > 0) out.append(" — ").append(formatSize(entrySize))
     }
     if (entries.size > shown.size) {
-      out.append("\n… at ").append(entries.size - shown.size).append(" pang files.")
+      out.append("\n… and ").append(entries.size - shown.size).append(" more files.")
     }
 
     val readme = entries.firstOrNull {
@@ -178,8 +178,8 @@ object FableArchiveReader {
 
   private fun summarizeText(context: Context, uri: Uri, name: String, size: Long): String {
     val text = context.contentResolver.openInputStream(uri)?.use { readStreamText(it) }
-      ?: return "Hindi ko mabuksan ang $name."
-    return "Binasa ko ang $name (${formatSize(size)}):\n$text"
+      ?: return "I couldn't open $name."
+    return "I read $name (${formatSize(size)}):\n$text"
   }
 
   private fun readStreamText(stream: InputStream): String {
@@ -217,7 +217,7 @@ object FableArchiveReader {
   }
 
   fun formatSize(bytes: Long): String {
-    if (bytes < 0) return "hindi alam ang laki"
+    if (bytes < 0) return "unknown size"
     if (bytes < 1024) return "$bytes B"
     val units = arrayOf("KB", "MB", "GB")
     var value = bytes.toDouble() / 1024.0

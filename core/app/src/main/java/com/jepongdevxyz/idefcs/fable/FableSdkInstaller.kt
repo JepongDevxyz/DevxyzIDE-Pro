@@ -86,7 +86,7 @@ object FableSdkInstaller {
     TaskExecutor.executeAsync(
       Callable { installBlocking(api, onProgress) }
     ) { result ->
-      val (success, detail) = result ?: (false to "walang resulta ang installer")
+      val (success, detail) = result ?: (false to "the installer returned no result")
       onDone(success, detail)
     }
   }
@@ -96,11 +96,11 @@ object FableSdkInstaller {
     onProgress: (percent: Int, status: String) -> Unit
   ): Pair<Boolean, String> {
     if (isPlatformInstalled(api)) {
-      return true to "naka-install na"
+      return true to "already installed"
     }
 
     val manager = findSdkManager()
-      ?: return false to "hindi makita ang sdkmanager sa cmdline-tools ng IDE"
+      ?: return false to "sdkmanager was not found in the IDE's cmdline-tools"
 
     return try {
       writeLicenses()
@@ -167,19 +167,19 @@ object FableSdkInstaller {
                 ?.toIntOrNull()?.coerceIn(0, 100) ?: -1
               val phase = when {
                 line.contains("Download", ignoreCase = true) ->
-                  "Dina-download ang Android $api platform…"
+                  "Downloading the Android $api platform…"
                 line.contains("Unzip", ignoreCase = true) ||
                   line.contains("Install", ignoreCase = true) ->
-                  "Ini-install ang Android $api platform…"
+                  "Installing the Android $api platform…"
                 line.contains("Loading", ignoreCase = true) ->
-                  "Hinahanda ang installer…"
+                  "Preparing the installer…"
                 else -> lastPhase
               }
               if (pct != lastPercent || phase != lastPhase) {
                 lastPercent = pct
                 lastPhase = phase
                 try {
-                  onProgress(pct, phase.ifEmpty { "Tumatakbo ang installer…" })
+                  onProgress(pct, phase.ifEmpty { "Running the installer…" })
                 } catch (e: Exception) {
                   // Progress reporting must never break the install.
                 }
@@ -196,18 +196,18 @@ object FableSdkInstaller {
       val finished = process.waitFor(INSTALL_TIMEOUT_MINUTES, TimeUnit.MINUTES)
       if (!finished) {
         process.destroyForcibly()
-        return false to "nag-timeout ang pag-install matapos ang $INSTALL_TIMEOUT_MINUTES minuto"
+        return false to "the install timed out after $INSTALL_TIMEOUT_MINUTES minutes"
       }
       stdoutThread.join(2000)
 
       if (isPlatformInstalled(api)) {
-        true to "na-install"
+        true to "installed"
       } else {
         val tail = synchronized(output) { output.toString() }.trim().lines().lastOrNull { it.isNotBlank() }
         false to "exit ${process.exitValue()}" + (if (tail != null) ": $tail" else "")
       }
     } catch (e: Exception) {
-      false to (e.message ?: "nagkaroon ng error ang installer")
+      false to (e.message ?: "the installer hit an error")
     }
   }
 

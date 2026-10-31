@@ -580,8 +580,8 @@
   <string name="msg_fable_updated">Updated %1$s</string>
   <string name="title_fable_chat">Chat</string>
   <string name="msg_fable_chat_hint">Ask about this project…</string>
-  <string name="msg_fable_install_card_title">I-install ko ba ang Android %1$d platform?</string>
-  <string name="msg_fable_install_card_body">Kailangan ito ng project (compileSdk %1$d) kaya pumalya ang build. Pag nag-Allow ka, i-install ko ito dito mismo sa app at sisimulan ko ulit ang build.</string>
+  <string name="msg_fable_install_card_title">Install the Android %1$d platform?</string>
+  <string name="msg_fable_install_card_body">Your project needs this (compileSdk %1$d), which is why the build failed. If you tap Allow, I'll install it right here in the app and restart the build.</string>
   <string name="btn_fable_allow">Allow</string>
   <string name="btn_fable_deny">Deny</string>
   <string name="msg_fable_chat_empty">No messages yet. Ask me about this project, or attach a ZIP, APK or file and I will read it.</string>
@@ -591,5 +591,5 @@
   <string name="cd_fable_head">Devxyz Fable has a message</string>
   <string name="title_fable_home">Devxyz Fable</string>
   <string name="msg_fable_home_hint">Ask, or send a project ZIP…</string>
-  <string name="msg_fable_home_empty">Kamusta! Ako si Devxyz Fable. Send me a project ZIP and I will import it, map it and start its first build — or ask me anything about the open project.</string>
+  <string name="msg_fable_home_empty">Hi! I'm Devxyz Fable. Send me a project ZIP and I will import it, map it and start its first build — or ask me anything about the open project.</string>
 </resources>

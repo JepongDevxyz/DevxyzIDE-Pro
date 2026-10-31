@@ -25,7 +25,7 @@ object FableInstallProgress {
   private val listeners = Collections.synchronizedList(mutableListOf<() -> Unit>())
 
   fun begin(api: Int) {
-    state = State(true, api, -1, "Sinisimulan ang installer…")
+    state = State(true, api, -1, "Starting the installer…")
     notifyChanged()
   }
 

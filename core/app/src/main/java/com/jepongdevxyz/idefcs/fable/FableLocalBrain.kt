@@ -29,49 +29,49 @@ object FableLocalBrain {
     val text = userText.lowercase()
 
     if (index == null) {
-      return "Binubuo ko pa ang mapa ng project — subukan mo ulit pag lumabas na ang " +
-        "project map sa itaas, o i-tap ang Refresh map. Ang kaya ko munang sagutin " +
-        "ay mga tanong tungkol sa mapa ng project mo."
+      return "I'm still building the project map — try again once the project map " +
+        "appears above, or tap Refresh map. For now I can answer " +
+        "questions about your project map."
     }
 
     if (containsAny(text, "module", "modulo")) {
       val names = index.modules.take(12).joinToString(", ") { it.name }
-      val more = if (index.modules.size > 12) " at iba pa" else ""
-      return "Ang project na ${index.projectName} ay may ${index.modules.size} modules: " +
+      val more = if (index.modules.size > 12) " and more" else ""
+      return "The project ${index.projectName} has ${index.modules.size} modules: " +
         "$names$more."
     }
 
     if (containsAny(text, "file")) {
-      return "May ${index.totalFileCount} files ang ${index.projectName} " +
-        "(hindi kasama ang build, .gradle, .git at .idea folders)."
+      return "${index.projectName} has ${index.totalFileCount} files " +
+        "(excluding the build, .gradle, .git and .idea folders)."
     }
 
     if (containsAny(text, "dependenc", "library", "libraries")) {
       val sample = index.modules.flatMap { it.dependencies }.distinct().take(10)
       val listing = if (sample.isEmpty()) ""
-        else "\nHalimbawa: " + sample.joinToString(", ")
-      return "May ${index.dependencyCount} dependency entries ang project sa lahat ng modules.$listing"
+        else "\nExamples: " + sample.joinToString(", ")
+      return "The project has ${index.dependencyCount} dependency entries across all modules.$listing"
     }
 
     if (containsAny(text, "gradle")) {
-      return "Toolchain ng ${index.projectName}: Gradle ${index.gradleVersion ?: "—"}, " +
+      return "Toolchain of ${index.projectName}: Gradle ${index.gradleVersion ?: "—"}, " +
         "AGP ${index.agpVersion ?: "—"}, Kotlin ${index.kotlinVersion ?: "—"}."
     }
 
     if (containsAny(text, "agp", "android gradle plugin")) {
-      return "Ang AGP ng project ay ${index.agpVersion ?: "hindi nakasulat sa build files"}."
+      return "The project's AGP is ${index.agpVersion ?: "not written in the build files"}."
     }
 
     if (containsAny(text, "kotlin")) {
-      return "Ang Kotlin version ng project ay ${index.kotlinVersion ?: "hindi nakasulat sa build files"}."
+      return "The project's Kotlin version is ${index.kotlinVersion ?: "not written in the build files"}."
     }
 
     if (containsAny(text, "sdk", "compile")) {
       val moduleSdk = index.modules.firstOrNull { it.compileSdk != null }
       val modulePart = if (moduleSdk != null)
-        " Ang ${moduleSdk.name} ay naka-compileSdk ${moduleSdk.compileSdk}."
-        else " Walang module na direktang nagtakda ng compileSdk sa build file nito."
-      return "Naka-install na SDK platforms: ${index.sdkPlatforms.joinToString(", ").ifEmpty { "—" }}." +
+        " ${moduleSdk.name} uses compileSdk ${moduleSdk.compileSdk}."
+        else " No module sets compileSdk directly in its build file."
+      return "Installed SDK platforms: ${index.sdkPlatforms.joinToString(", ").ifEmpty { "—" }}." +
         modulePart
     }
 
@@ -83,11 +83,11 @@ object FableLocalBrain {
 
     if (containsAny(text, "build", "status", "error", "pumalya", "failed")) {
       return if (lastBuildFailed) {
-        "Ang huling build ng project na ito ay PUMALYA. Tingnan ang notice ko sa chat " +
-          "para sa klasipikasyon ng error, o buksan ang Build output para sa buong detalye."
+        "The last build of this project FAILED. See my notice in the chat " +
+          "for the error classification, or open the Build output for the full details."
       } else {
-        "Walang naitalang pumalyang build sa project na ito mula nang huli itong nabuksan. " +
-          "Pag may pumalya, ako mismo ang magme-message sa iyo rito."
+        "No failed build has been recorded for this project since it was last opened. " +
+          "If one fails, I'll message you here myself."
       }
     }
 
@@ -96,23 +96,23 @@ object FableLocalBrain {
     }
 
     if (containsAny(text, "hello", "hi", "kamusta", "kumusta", "hey")) {
-      return "Kamusta! Ako si Devxyz Fable, ang lokal na katulong ng DevxyzIDE Pro para " +
-        "sa project na ito.\n" + capabilities()
+      return "Hi! I'm Devxyz Fable, the local assistant of DevxyzIDE Pro for " +
+        "this project.\n" + capabilities()
     }
 
-    return "Lokal pa lang ang utak ko sa phase na ito, kaya ang kaya kong sagutin ay mga " +
-      "tanong tungkol sa mapa ng project (modules, files, dependencies, Gradle/AGP/Kotlin, " +
-      "SDK, environment), ang status ng build, at ang pagbasa ng ZIP/APK/files na ia-attach mo. " +
-      "Ang malayang AI chat ay darating sa susunod na phase at mangangailangan ng sarili " +
-      "mong Gemini key sa Settings."
+    return "My brain is local-only in this phase, so I can answer " +
+      "questions about the project map (modules, files, dependencies, Gradle/AGP/Kotlin, " +
+      "SDK, environment), the build status, and reading ZIP/APK/files you attach. " +
+      "Free AI chat arrives in the next phase and will need your own " +
+      "Gemini key in Settings."
   }
 
   private fun capabilities(): String {
-    return "Ang kaya ko sa ngayon (lahat lokal, walang internet):\n" +
-      "• Sumagot tungkol sa mapa ng project — modules, files, dependencies, bersyon ng toolchain\n" +
-      "• Magbantay ng build at mag-message agad pag may pumalya, kasama ang klase ng error\n" +
-      "• Magbasa ng ia-attach mong ZIP, APK o text file at ibuod ang laman nito\n" +
-      "Magtanong ka lang, halimbawa: \"ilang modules ang project ko?\""
+    return "What I can do right now (all local, no internet):\n" +
+      "• Answer questions about the project map — modules, files, dependencies, toolchain versions\n" +
+      "• Watch builds and message you right away when one fails, with the error class\n" +
+      "• Read a ZIP, APK or text file you attach and summarize its contents\n" +
+      "Just ask — for example: \"how many modules does my project have?\""
   }
 
   private fun containsAny(text: String, vararg needles: String): Boolean {

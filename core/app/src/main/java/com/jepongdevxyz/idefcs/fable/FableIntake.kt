@@ -90,8 +90,8 @@ object FableIntake {
       val projectRoot = extractProject(context, uri, tempDir)
         ?: return Result(
           null,
-          "Hindi ito mukhang kumpletong Gradle project: walang settings.gradle(.kts) " +
-            "na may kasamang root build.gradle(.kts) sa loob ng ZIP."
+          "This doesn't look like a complete Gradle project: there is no settings.gradle(.kts) " +
+            "together with a root build.gradle(.kts) inside the ZIP."
         )
 
       val settingsText = readFile(File(projectRoot, "settings.gradle.kts")) +
@@ -124,14 +124,14 @@ object FableIntake {
 
       Result(
         target,
-        "Na-import ko ang project na ${index.projectName} sa DevxyzIDEProjects: " +
+        "I imported the project ${index.projectName} into DevxyzIDEProjects: " +
           "${index.modules.size} modules, ${index.totalFileCount} files, " +
           "Gradle ${index.gradleVersion ?: "—"} / AGP ${index.agpVersion ?: "—"}. " +
-          "Binubuksan ko na ito at sisimulan ko ang unang build (assembleDebug) — " +
-          "ang resulta ay iuulat ko sa chat ng project."
+          "I'm opening it now and starting the first build (assembleDebug) — " +
+          "I'll report the result in the project's chat."
       )
     } catch (e: Exception) {
-      Result(null, "Hindi ko na-import ang ZIP: ${e.message ?: "nagkaroon ng error."}")
+      Result(null, "I couldn't import the ZIP: ${e.message ?: "an error occurred."}")
     } finally {
       try {
         if (tempDir.exists()) tempDir.deleteRecursively()
@@ -154,12 +154,12 @@ object FableIntake {
           val entry = zip.nextEntry ?: break
           entryCount++
           if (entryCount > MAX_ENTRIES) {
-            throw IllegalStateException("Masyadong maraming files ang ZIP (mahigit $MAX_ENTRIES).")
+            throw IllegalStateException("The ZIP has too many files (more than $MAX_ENTRIES).")
           }
           val name = entry.name.replace('\\', '/')
           val outFile = File(tempDir, name)
           if (!outFile.canonicalPath.startsWith(tempCanonical)) {
-            throw IllegalStateException("May kahina-hinalang entry sa ZIP: $name")
+            throw IllegalStateException("There's a suspicious entry in the ZIP: $name")
           }
           if (entry.isDirectory) {
             outFile.mkdirs()
@@ -172,7 +172,7 @@ object FableIntake {
                 if (read <= 0) break
                 totalBytes += read
                 if (totalBytes > MAX_TOTAL_BYTES) {
-                  throw IllegalStateException("Masyadong malaki ang ZIP pag na-extract (mahigit 800 MB).")
+                  throw IllegalStateException("The ZIP is too large when extracted (more than 800 MB).")
                 }
                 output.write(buffer, 0, read)
               }
