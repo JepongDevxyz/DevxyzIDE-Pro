@@ -21,6 +21,8 @@ import android.content.Context
 import com.jepongdevxyz.idefcs.preferences.internal.GeneralPreferences
 import com.jepongdevxyz.idefcs.projects.IProjectManager
 import com.jepongdevxyz.idefcs.projects.builder.BuildService
+import com.jepongdevxyz.idefcs.tasks.TaskExecutor
+import java.util.concurrent.Callable
 import com.jepongdevxyz.idefcs.lookup.Lookup
 import java.util.Collections
 
@@ -40,6 +42,10 @@ object FableBuildWatcher {
 
   private val tail = ArrayDeque<String>()
 
+  /** When the watcher last saw a build finish; used to verify restarts. */
+  @Volatile
+  private var lastBuildFinishAt = 0L
+
   fun onOutputLine(line: String) {
     try {
       synchronized(tail) {
@@ -54,6 +60,7 @@ object FableBuildWatcher {
   }
 
   fun onBuildFinished(context: Context, success: Boolean) {
+    lastBuildFinishAt = System.currentTimeMillis()
     try {
       val outputTail = synchronized(tail) {
         val joined = tail.joinToString("\n")
@@ -175,18 +182,12 @@ object FableBuildWatcher {
               projectPath,
               FableChatMessage(
                 role = FableRole.FABLE,
-                text = "Done — the Android $api platform is installed. " +
-                  "I'll restart the build (assembleDebug).",
+                text = "Done — the Android $api platform is installed.",
                 timeMillis = System.currentTimeMillis()
               ),
               countUnread = true
             )
-            try {
-              Lookup.getDefault().lookup(BuildService.KEY_BUILD_SERVICE)
-                ?.executeTasks("assembleDebug")
-            } catch (e: Exception) {
-              // The user can start the build manually; the platform is in.
-            }
+            restartBuild(filesDir, projectPath, api)
           } else {
             FableChatStore.append(
               filesDir,
@@ -207,6 +208,107 @@ object FableBuildWatcher {
       }
     } catch (e: Exception) {
       // The approved install is best-effort only.
+    }
+  }
+
+  /**
+   * Restarts assembleDebug after an approved install — and VERIFIES it.
+   * The old code fired executeTasks once and claimed success even when
+   * the build service was not registered (fresh installs) or the call
+   * failed asynchronously, so the restart silently never happened.
+   * Now: retry the service lookup a few times; only claim the restart
+   * once the service has accepted the tasks; if the execution future
+   * fails and no build finish is seen afterwards, say so honestly.
+   */
+  private fun restartBuild(filesDir: java.io.File, projectPath: String, api: Int) {
+    val attemptAt = System.currentTimeMillis()
+    TaskExecutor.executeAsync(
+      Callable {
+        var future: java.util.concurrent.CompletableFuture<*>? = null
+        var tries = 0
+        while (future == null && tries < 4) {
+          try {
+            val service = Lookup.getDefault().lookup(BuildService.KEY_BUILD_SERVICE)
+            if (service != null) {
+              future = service.executeTasks("assembleDebug")
+            }
+          } catch (e: Exception) {
+            // Service not ready yet; retry below.
+          }
+          if (future == null) {
+            tries++
+            if (tries < 4) {
+              try {
+                Thread.sleep(1500)
+              } catch (e: Exception) {
+                // Interrupted; keep the flow moving.
+              }
+            }
+          }
+        }
+        future
+      }
+    ) { future ->
+      try {
+        if (future == null) {
+          appendRestartFailedNotice(filesDir, projectPath, api)
+          return@executeAsync
+        }
+        FableChatStore.append(
+          filesDir,
+          projectPath,
+          FableChatMessage(
+            role = FableRole.FABLE,
+            text = "Restarting the build (assembleDebug) now.",
+            timeMillis = System.currentTimeMillis()
+          ),
+          countUnread = true
+        )
+        future.whenComplete { _, error ->
+          if (error != null) {
+            // A real build outcome also completes the watcher hook; only
+            // report when no build finished after this restart attempt.
+            TaskExecutor.executeAsync(
+              Callable {
+                try {
+                  Thread.sleep(3000)
+                } catch (e: Exception) {
+                  // Keep going; the check below is what matters.
+                }
+                lastBuildFinishAt < attemptAt
+              }
+            ) { stale ->
+              if (stale == true) {
+                appendRestartFailedNotice(filesDir, projectPath, api)
+              }
+            }
+          }
+        }
+      } catch (e: Exception) {
+        // Verification is best-effort; the install itself already succeeded.
+      }
+    }
+  }
+
+  private fun appendRestartFailedNotice(
+    filesDir: java.io.File,
+    projectPath: String,
+    api: Int
+  ) {
+    try {
+      FableChatStore.append(
+        filesDir,
+        projectPath,
+        FableChatMessage(
+          role = FableRole.NOTICE,
+          text = "The Android $api platform is installed, but I couldn't restart " +
+            "the build automatically. Please tap Run to build again.",
+          timeMillis = System.currentTimeMillis()
+        ),
+        countUnread = true
+      )
+    } catch (e: Exception) {
+      // Reporting must never break anything.
     }
   }
 }

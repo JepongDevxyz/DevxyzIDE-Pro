@@ -97,6 +97,8 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
     FableChatStore.addListener(chatListener)
     FablePendingInstall.addListener(pendingListener)
     FableInstallProgress.addListener(progressListener)
+    setupKeyboardLift(view)
+    registerImeFirstBack(viewLifecycleOwner, view)
     render()
   }
 
@@ -227,6 +229,54 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
     binding.fableActionBody.text =
       getString(R.string.msg_fable_install_card_body, api)
     binding.fableActionCard.visibility = View.VISIBLE
+  }
+
+  /**
+   * Registers a back-press callback for this Fable chat surface: while the
+   * keyboard (IME) is visible, the system navigation Back closes the
+   * keyboard first (Jepong's order); otherwise the press passes through
+   * untouched.
+   */
+  private fun registerImeFirstBack(owner: androidx.lifecycle.LifecycleOwner, root: android.view.View) {
+    val host = activity ?: return
+    val callback = object : androidx.activity.OnBackPressedCallback(true) {
+      override fun handleOnBackPressed() {
+        val insets = androidx.core.view.ViewCompat.getRootWindowInsets(host.window.decorView)
+        val imeVisible = insets?.isVisible(
+          androidx.core.view.WindowInsetsCompat.Type.ime()
+        ) == true
+        if (imeVisible && root.isShown) {
+          androidx.core.view.WindowInsetsControllerCompat(
+            host.window, host.window.decorView
+          ).hide(androidx.core.view.WindowInsetsCompat.Type.ime())
+        } else {
+          isEnabled = false
+          host.onBackPressedDispatcher.onBackPressed()
+          isEnabled = true
+        }
+      }
+    }
+    host.onBackPressedDispatcher.addCallback(owner, callback)
+  }
+
+  /**
+   * Lifts this chat surface above the keyboard: edge-to-edge windows do
+   * not resize for the IME, so track the visible display frame and pad
+   * the bottom by the keyboard height while it is open.
+   */
+  private fun setupKeyboardLift(root: android.view.View) {
+    var lift = 0
+    root.viewTreeObserver.addOnGlobalLayoutListener {
+      val rect = android.graphics.Rect()
+      root.getWindowVisibleDisplayFrame(rect)
+      val diff = root.rootView.height - rect.bottom
+      val threshold = (100 * root.resources.displayMetrics.density).toInt()
+      val newLift = if (diff > threshold) diff else 0
+      if (newLift != lift) {
+        lift = newLift
+        root.setPadding(root.paddingLeft, root.paddingTop, root.paddingRight, newLift)
+      }
+    }
   }
 
   /** Live install progress (real % parsed from sdkmanager's own output). */

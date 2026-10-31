@@ -86,7 +86,48 @@ class FableHomeActivity : EdgeToEdgeIDEActivity() {
     }
 
     FableChatStore.addListener(chatListener)
+    setupKeyboardLift(binding.root)
+    registerImeFirstBack()
     renderChat()
+  }
+
+  /** Navigation Back closes the keyboard first while it is open. */
+  private fun registerImeFirstBack() {
+    onBackPressedDispatcher.addCallback(
+      this,
+      object : androidx.activity.OnBackPressedCallback(true) {
+        override fun handleOnBackPressed() {
+          val insets = androidx.core.view.ViewCompat.getRootWindowInsets(window.decorView)
+          val imeVisible = insets?.isVisible(
+            androidx.core.view.WindowInsetsCompat.Type.ime()
+          ) == true
+          if (imeVisible) {
+            androidx.core.view.WindowInsetsControllerCompat(window, window.decorView)
+              .hide(androidx.core.view.WindowInsetsCompat.Type.ime())
+          } else {
+            isEnabled = false
+            onBackPressedDispatcher.onBackPressed()
+            isEnabled = true
+          }
+        }
+      }
+    )
+  }
+
+  /** Lifts the chat content above the keyboard while it is open. */
+  private fun setupKeyboardLift(root: android.view.View) {
+    var lift = 0
+    root.viewTreeObserver.addOnGlobalLayoutListener {
+      val rect = android.graphics.Rect()
+      root.getWindowVisibleDisplayFrame(rect)
+      val diff = root.rootView.height - rect.bottom
+      val threshold = (100 * root.resources.displayMetrics.density).toInt()
+      val newLift = if (diff > threshold) diff else 0
+      if (newLift != lift) {
+        lift = newLift
+        root.setPadding(root.paddingLeft, root.paddingTop, root.paddingRight, newLift)
+      }
+    }
   }
 
   override fun onDestroy() {
