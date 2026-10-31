@@ -103,6 +103,7 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
   }
 
   override fun onDestroyView() {
+    removeKeyboardLift()
     FableChatStore.removeListener(chatListener)
     FablePendingInstall.removeListener(pendingListener)
     FableInstallProgress.removeListener(progressListener)
@@ -264,9 +265,12 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
    * not resize for the IME, so track the visible display frame and pad
    * the bottom by the keyboard height while it is open.
    */
+  private var keyboardListener: android.view.ViewTreeObserver.OnGlobalLayoutListener? = null
+  private var keyboardRoot: android.view.View? = null
+
   private fun setupKeyboardLift(root: android.view.View) {
     var lift = 0
-    root.viewTreeObserver.addOnGlobalLayoutListener {
+    val listener = android.view.ViewTreeObserver.OnGlobalLayoutListener {
       val rect = android.graphics.Rect()
       root.getWindowVisibleDisplayFrame(rect)
       val diff = root.rootView.height - rect.bottom
@@ -277,6 +281,23 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
         root.setPadding(root.paddingLeft, root.paddingTop, root.paddingRight, newLift)
       }
     }
+    keyboardListener = listener
+    keyboardRoot = root
+    root.viewTreeObserver.addOnGlobalLayoutListener(listener)
+  }
+
+  /** Detaches the keyboard-lift listener so dead panel views are not kept. */
+  private fun removeKeyboardLift() {
+    try {
+      val listener = keyboardListener
+      if (listener != null) {
+        keyboardRoot?.viewTreeObserver?.removeOnGlobalLayoutListener(listener)
+      }
+    } catch (e: Exception) {
+      // The view may already be gone; nothing else to clean up.
+    }
+    keyboardListener = null
+    keyboardRoot = null
   }
 
   /** Live install progress (real % parsed from sdkmanager's own output). */

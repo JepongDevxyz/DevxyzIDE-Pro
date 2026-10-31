@@ -278,7 +278,9 @@ object FableBuildWatcher {
             TaskExecutor.executeAsync(
               Callable {
                 try {
-                  Thread.sleep(3000)
+                  // Generous margin: a real build's finish hook can land
+                  // a moment after its future completes.
+                  Thread.sleep(8000)
                 } catch (e: Exception) {
                   // Keep going; the check below is what matters.
                 }

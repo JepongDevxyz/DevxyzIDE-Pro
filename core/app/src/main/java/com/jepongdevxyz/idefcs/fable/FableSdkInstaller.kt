@@ -224,16 +224,30 @@ object FableSdkInstaller {
   fun stopGradleDaemons(projectPath: String) {
     try {
       val projectDir = File(projectPath)
+      val candidates = mutableListOf<List<String>>()
       val gradlew = File(projectDir, "gradlew")
-      val command: List<String>? = when {
-        gradlew.isFile -> listOf("sh", gradlew.absolutePath, "--stop")
-        else -> findGradleDistribution()?.let {
-          listOf("sh", File(it, "bin/gradle").absolutePath, "--stop")
+      if (gradlew.isFile) {
+        candidates += listOf("sh", gradlew.absolutePath, "--stop")
+      }
+      findGradleDistribution()?.let {
+        candidates += listOf("sh", File(it, "bin/gradle").absolutePath, "--stop")
+      }
+      for ((index, command) in candidates.withIndex()) {
+        val exit = runStopCommand(command, projectDir)
+        if (exit == 0 || index == candidates.lastIndex) {
+          break
         }
+        // The wrapper could not run (e.g. missing wrapper jar): fall
+        // through to the downloaded distribution's own gradle binary.
       }
-      if (command == null) {
-        return
-      }
+    } catch (e: Exception) {
+      // Best-effort only: the restart proceeds either way.
+    }
+  }
+
+  /** Runs one daemon-stop command; returns its exit code, or -1. */
+  private fun runStopCommand(command: List<String>, projectDir: File): Int {
+    return try {
       val processBuilder = ProcessBuilder(command)
       processBuilder.directory(projectDir)
       val env = processBuilder.environment()
@@ -262,11 +276,14 @@ object FableSdkInstaller {
         }
       }.apply { isDaemon = true }.start()
       val finished = process.waitFor(60, TimeUnit.SECONDS)
-      if (!finished) {
+      if (finished) {
+        process.exitValue()
+      } else {
         process.destroyForcibly()
+        -1
       }
     } catch (e: Exception) {
-      // Best-effort only: the restart proceeds either way.
+      -1
     }
   }
 
@@ -277,7 +294,7 @@ object FableSdkInstaller {
       if (!dists.isDirectory) {
         return null
       }
-      dists.walkTopDown().maxDepth(4).firstOrNull {
+      dists.walkTopDown().maxDepth(6).firstOrNull {
         it.isDirectory && File(it, "bin/gradle").isFile
       }
     } catch (e: Exception) {
