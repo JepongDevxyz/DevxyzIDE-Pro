@@ -7,24 +7,19 @@ import java.util.Collections
  * by the user with an Allow/Deny card in the Fable panel — the same way
  * Spidey asks before acting. The build watcher creates a request when a
  * build fails because an SDK platform is missing; nothing is installed
- * until the user allows it. A denial is remembered for the session so the
- * card does not keep coming back for the same project + platform.
+ * until the user allows it. A denial only dismisses the card for that
+ * failure: the next failed build asks again, just like Spidey would.
  */
 object FablePendingInstall {
 
   private val pending = Collections.synchronizedMap(mutableMapOf<String, Int>())
-  private val denied = Collections.synchronizedSet(mutableSetOf<String>())
   private val listeners = Collections.synchronizedList(mutableListOf<() -> Unit>())
 
-  private fun key(projectPath: String, api: Int) = "$projectPath:$api"
-
   /**
-   * Creates a request unless one is already pending for the project or the
-   * user already denied this platform. Returns true when a NEW request was
-   * created.
+   * Creates a request unless one is already pending for the project.
+   * Returns true when a NEW request was created.
    */
   fun request(projectPath: String, api: Int): Boolean {
-    if (denied.contains(key(projectPath, api))) return false
     val isNew = !pending.containsKey(projectPath)
     pending[projectPath] = api
     if (isNew) notifyChanged()
@@ -40,11 +35,11 @@ object FablePendingInstall {
     return api
   }
 
-  /** The user denied: clear the request and remember the denial (session). */
+  /** The user denied: clear the request; the next failed build asks again. */
   fun deny(projectPath: String) {
-    val api = pending.remove(projectPath) ?: return
-    denied.add(key(projectPath, api))
-    notifyChanged()
+    if (pending.remove(projectPath) != null) {
+      notifyChanged()
+    }
   }
 
   fun addListener(listener: () -> Unit) {

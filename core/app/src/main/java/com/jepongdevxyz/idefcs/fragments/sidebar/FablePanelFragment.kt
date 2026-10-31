@@ -242,8 +242,8 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
       projectPath,
       FableChatMessage(
         FableRole.FABLE,
-        "Sige, hindi ko i-install ang platform. Lalabas ulit ang card " +
-          "sa susunod na session kung kailangan pa rin ito ng build.",
+        "Sige, hindi ko i-install ang platform. I-build mo lang ulit " +
+          "kung kailangan mo na — lalabas ulit ang card.",
         System.currentTimeMillis()
       ),
       countUnread = false

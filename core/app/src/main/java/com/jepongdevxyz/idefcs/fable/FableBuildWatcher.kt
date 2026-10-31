@@ -115,8 +115,8 @@ object FableBuildWatcher {
    * Missing SDK platform: do NOT install silently. Raise an Allow/Deny
    * request ([FablePendingInstall]) and post a chat note pointing at the
    * card; the panel renders the card and only an Allow runs the install
-   * via [runApprovedInstall]. One card per project at a time, and a denial
-   * is remembered for the session.
+   * via [runApprovedInstall]. One card per project at a time; a denial
+   * dismisses the card and the next failed build asks again.
    */
   private fun maybeAutoInstallPlatform(
     context: Context,
