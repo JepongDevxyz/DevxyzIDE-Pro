@@ -142,7 +142,8 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) :
         }
 
         val stopWatch = StopWatch("Connection to project")
-        val isReinitializing = connector != null && connection != null && params == lastInitParams
+        val isReinitializing =
+          !params.forceNewConnection && connector != null && connection != null && params == lastInitParams
 
         if (isReinitializing) {
           log.info("Project is being reinitialized")

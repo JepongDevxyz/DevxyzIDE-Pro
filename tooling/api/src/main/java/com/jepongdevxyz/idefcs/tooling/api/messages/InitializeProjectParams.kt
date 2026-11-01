@@ -25,11 +25,17 @@ import java.io.Serializable
  * @property directory The absolute path to the root directory of the project to initialize.
  * @property gradleDistribution The parameters for the Gradle distribution to use.
  * @property androidParams The [AndroidInitializationParams] for initializing the Android module projects.
+ * @property forceNewConnection When true, the server must drop its current Gradle
+ *           connection and connect again even if the other params are unchanged.
+ *           A fresh connection spawns a fresh Gradle daemon, which rescans the
+ *           Android SDK — needed after an SDK platform is installed in-app,
+ *           because a long-lived daemon keeps its stale SDK view.
  * @author Akash Yadav
  */
 data class InitializeProjectParams @JvmOverloads constructor(
   val directory: String,
   val gradleDistribution: GradleDistributionParams = GradleDistributionParams.WRAPPER,
-  val androidParams: AndroidInitializationParams = AndroidInitializationParams.DEFAULT
+  val androidParams: AndroidInitializationParams = AndroidInitializationParams.DEFAULT,
+  val forceNewConnection: Boolean = false
 ) : Serializable
 

@@ -24,6 +24,9 @@ import com.jepongdevxyz.idefcs.projects.builder.BuildService
 import com.jepongdevxyz.idefcs.tasks.TaskExecutor
 import java.util.concurrent.Callable
 import com.jepongdevxyz.idefcs.lookup.Lookup
+import com.jepongdevxyz.idefcs.services.builder.gradleDistributionParams
+import com.jepongdevxyz.idefcs.tooling.api.messages.AndroidInitializationParams
+import com.jepongdevxyz.idefcs.tooling.api.messages.InitializeProjectParams
 import java.util.Collections
 
 /**
@@ -46,6 +49,16 @@ object FableBuildWatcher {
   @Volatile
   private var lastBuildFinishAt = 0L
 
+  /**
+   * True while a Fable-triggered re-initialization (forced fresh Gradle
+   * connection after an SDK install) is in flight. The init's success
+   * callback is a project sync, not a build outcome, so onBuildFinished
+   * ignores it; no real build can finish in that window because the
+   * build service rejects concurrent work.
+   */
+  @Volatile
+  private var reinitializing = false
+
   fun onOutputLine(line: String) {
     try {
       synchronized(tail) {
@@ -60,6 +73,11 @@ object FableBuildWatcher {
   }
 
   fun onBuildFinished(context: Context, success: Boolean) {
+    if (reinitializing) {
+      // A Fable-triggered re-initialization reporting back; not a build.
+      synchronized(tail) { tail.clear() }
+      return
+    }
     lastBuildFinishAt = System.currentTimeMillis()
     try {
       val outputTail = synchronized(tail) {
@@ -219,30 +237,29 @@ object FableBuildWatcher {
    * Now: retry the service lookup a few times; only claim the restart
    * once the service has accepted the tasks; if the execution future
    * fails and no build finish is seen afterwards, say so honestly.
+   *
+   * Before executing, the project is re-initialized with
+   * forceNewConnection: the tooling server then drops its Gradle
+   * connection and connects again, spawning a fresh daemon that rescans
+   * the SDK and sees the just-installed platform. An external
+   * `gradlew --stop` was NOT enough on-device (phone-proven 2026-11-01:
+   * the restarted build still read the SDK as missing the platform,
+   * while a full app restart — new server, new connection — saw it).
+   * If the re-initialization fails, the daemon stop remains as fallback.
    */
   private fun restartBuild(filesDir: java.io.File, projectPath: String, api: Int) {
     val attemptAt = System.currentTimeMillis()
     TaskExecutor.executeAsync(
       Callable {
-        // The daemon from the failed build cached the SDK WITHOUT the new
-        // platform; stop it so the restarted build rescans the SDK.
-        try {
-          FableSdkInstaller.stopGradleDaemons(projectPath)
-        } catch (e: Exception) {
-          // Best-effort; the restart proceeds either way.
-        }
-        var future: java.util.concurrent.CompletableFuture<*>? = null
+        var service: BuildService? = null
         var tries = 0
-        while (future == null && tries < 4) {
+        while (service == null && tries < 4) {
           try {
-            val service = Lookup.getDefault().lookup(BuildService.KEY_BUILD_SERVICE)
-            if (service != null) {
-              future = service.executeTasks("assembleDebug")
-            }
+            service = Lookup.getDefault().lookup(BuildService.KEY_BUILD_SERVICE)
           } catch (e: Exception) {
             // Service not ready yet; retry below.
           }
-          if (future == null) {
+          if (service == null) {
             tries++
             if (tries < 4) {
               try {
@@ -253,9 +270,42 @@ object FableBuildWatcher {
             }
           }
         }
-        future
+        val buildService = service ?: return@Callable null
+        // Force a fresh Gradle connection so the new daemon rescans the
+        // SDK. The init's own callbacks are suppressed via [reinitializing].
+        reinitializing = true
+        var reconnected = false
+        try {
+          val params = InitializeProjectParams(
+            directory = projectPath,
+            gradleDistribution = gradleDistributionParams,
+            androidParams = AndroidInitializationParams.DEFAULT,
+            forceNewConnection = true
+          )
+          buildService.initializeProject(params)
+            .get(5, java.util.concurrent.TimeUnit.MINUTES)
+          reconnected = true
+        } catch (e: Exception) {
+          reconnected = false
+        }
+        if (!reconnected) {
+          // Fallback: stop the daemon externally, then build anyway.
+          reinitializing = false
+          try {
+            FableSdkInstaller.stopGradleDaemons(projectPath)
+          } catch (e: Exception) {
+            // Best-effort; the restart proceeds either way.
+          }
+        }
+        try {
+          buildService.executeTasks("assembleDebug")
+        } catch (e: Exception) {
+          reinitializing = false
+          null
+        }
       }
     ) { future ->
+      reinitializing = false
       try {
         if (future == null) {
           appendRestartFailedNotice(filesDir, projectPath, api)
