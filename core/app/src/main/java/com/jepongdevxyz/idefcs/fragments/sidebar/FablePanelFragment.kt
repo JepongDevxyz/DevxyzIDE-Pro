@@ -24,6 +24,10 @@ import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import com.jepongdevxyz.idefcs.activities.editor.EditorActivityKt
 import com.jepongdevxyz.idefcs.databinding.FragmentFablePanelBinding
+import com.jepongdevxyz.idefcs.fable.FableAi
+import com.jepongdevxyz.idefcs.fable.FableAiBudget
+import com.jepongdevxyz.idefcs.fable.FableAiCallKind
+import com.jepongdevxyz.idefcs.fable.FableAiFixRequest
 import com.jepongdevxyz.idefcs.fable.FableArchiveReader
 import com.jepongdevxyz.idefcs.fable.FableBuildWatcher
 import com.jepongdevxyz.idefcs.fable.FableInstallProgress
@@ -33,6 +37,8 @@ import com.jepongdevxyz.idefcs.fable.FableChatUi
 import com.jepongdevxyz.idefcs.fable.FableIndexStore
 import com.jepongdevxyz.idefcs.fable.FableIntake
 import com.jepongdevxyz.idefcs.fable.FableLocalBrain
+import com.jepongdevxyz.idefcs.fable.FablePatcher
+import com.jepongdevxyz.idefcs.fable.FablePendingAi
 import com.jepongdevxyz.idefcs.fable.FablePendingInstall
 import com.jepongdevxyz.idefcs.fable.FableRole
 import com.jepongdevxyz.idefcs.fable.KnowledgeIndex
@@ -71,6 +77,10 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
     _binding?.root?.post { renderChat() }
   }
 
+  private val aiListener: () -> Unit = {
+    _binding?.root?.post { renderAiCards() }
+  }
+
   private val attachmentLauncher =
     registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
       if (uri != null) {
@@ -90,12 +100,17 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
     binding.fableChatSend.setOnClickListener { sendChatMessage() }
     binding.fableActionAllow.setOnClickListener { onInstallCardAllow() }
     binding.fableActionDeny.setOnClickListener { onInstallCardDeny() }
+    binding.fableAiAllow.setOnClickListener { onAiCardAllow() }
+    binding.fableAiDeny.setOnClickListener { onAiCardDeny() }
+    binding.fablePatchApply.setOnClickListener { onPatchApply() }
+    binding.fablePatchDeny.setOnClickListener { onPatchDeny() }
     binding.fableChatAttach.setOnClickListener {
       attachmentLauncher.launch(arrayOf("*/*"))
     }
 
     FableChatStore.addListener(chatListener)
     FablePendingInstall.addListener(pendingListener)
+    FablePendingAi.addListener(aiListener)
     FableInstallProgress.addListener(progressListener)
     setupKeyboardLift(view)
     registerImeFirstBack(viewLifecycleOwner, view)
@@ -106,6 +121,7 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
     removeKeyboardLift()
     FableChatStore.removeListener(chatListener)
     FablePendingInstall.removeListener(pendingListener)
+    FablePendingAi.removeListener(aiListener)
     FableInstallProgress.removeListener(progressListener)
     super.onDestroyView()
   }
@@ -113,6 +129,8 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
   private fun render() {
     val binding = _binding ?: return
     renderActionCard()
+    renderAiCards()
+    renderAiStatus()
     renderProgress()
     val enabled = GeneralPreferences.fableEnabled
     binding.fableSwitch.isChecked = enabled
@@ -402,6 +420,9 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
 
     val filesDir = requireContext().filesDir
     val projectPath = projectDir.absolutePath
+    // History for the AI is read BEFORE the new message is appended, so
+    // the current question is not sent twice.
+    val history = FableChatStore.load(filesDir, projectPath)
     FableChatStore.append(
       filesDir,
       projectPath,
@@ -410,15 +431,66 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
     )
 
     val index = FableIndexStore.load(filesDir, projectPath)
-    val log = FableChatStore.load(filesDir, projectPath)
-    val reply = FableLocalBrain.reply(text, index, log.lastBuildFailed)
+    val brain = FableLocalBrain.reply(text, index, history.lastBuildFailed)
+    if (brain.answeredLocally || !FableAi.isConfigured()) {
+      FableChatStore.append(
+        filesDir,
+        projectPath,
+        FableChatMessage(FableRole.FABLE, brain.text, System.currentTimeMillis()),
+        countUnread = false
+      )
+      renderChat()
+      return
+    }
+
+    // Beyond local knowledge and a Gemini key is set: ask the AI. The
+    // pending bubble is replaced by the real reply when it lands.
     FableChatStore.append(
       filesDir,
       projectPath,
-      FableChatMessage(FableRole.FABLE, reply, System.currentTimeMillis()),
+      FableChatMessage(
+        FableRole.FABLE, FableAi.PENDING_MARKER + " Asking Gemini…",
+        System.currentTimeMillis()
+      ),
       countUnread = false
     )
     renderChat()
+
+    val appContext = requireContext().applicationContext
+    TaskExecutor.executeAsync(
+      Callable {
+        FableAi.chat(appContext, filesDir, projectPath, index, history.messages, text)
+      }
+    ) { outcome ->
+      deliverAiOutcome(filesDir, projectPath, outcome)
+    }
+  }
+
+  /** Posts an AI chat/vision outcome into the chat, replacing the bubble. */
+  private fun deliverAiOutcome(
+    filesDir: File,
+    projectPath: String,
+    outcome: FableAi.Outcome?
+  ) {
+    val replyText: String = when (outcome) {
+      is FableAi.Outcome.Reply -> {
+        outcome.proposal?.let { FablePendingAi.propose(it) }
+        outcome.text
+      }
+      is FableAi.Outcome.Failed -> outcome.message
+      null -> "Something went wrong while asking Gemini. Nothing was changed."
+    }
+    val message = FableChatMessage(
+      FableRole.FABLE, replyText, System.currentTimeMillis()
+    )
+    val replaced = FableChatStore.replacePending(
+      filesDir, projectPath, FableAi.PENDING_MARKER, message
+    )
+    if (!replaced) {
+      FableChatStore.append(filesDir, projectPath, message, countUnread = false)
+    }
+    renderChat()
+    renderAiStatus()
   }
 
   private fun onAttachmentPicked(uri: Uri) {
@@ -437,6 +509,36 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
     renderChat()
 
     val appContext = context.applicationContext
+
+    // Images and videos go to Gemini vision when a key is set (plan §12).
+    val mime = context.contentResolver.getType(uri) ?: ""
+    if ((mime.startsWith("image/") || mime.startsWith("video/")) && FableAi.isConfigured()) {
+      val log = FableChatStore.load(filesDir, projectPath)
+      val question = log.messages.lastOrNull {
+        it.role == FableRole.USER && it.text.isNotBlank()
+      }?.text ?: ""
+      val index = FableIndexStore.load(filesDir, projectPath)
+      FableChatStore.append(
+        filesDir,
+        projectPath,
+        FableChatMessage(
+          FableRole.FABLE, FableAi.PENDING_MARKER + " Looking at that with Gemini…",
+          System.currentTimeMillis()
+        ),
+        countUnread = false
+      )
+      renderChat()
+      TaskExecutor.executeAsync(
+        Callable {
+          val images = FableArchiveReader.loadVisionImages(appContext, uri)
+          FableAi.vision(filesDir, projectPath, index, images, question)
+        }
+      ) { outcome ->
+        deliverAiOutcome(filesDir, projectPath, outcome)
+      }
+      return
+    }
+
     TaskExecutor.executeAsync(
       Callable {
         if (name.lowercase().endsWith(".zip") && FableIntake.looksLikeProjectZip(appContext, uri)) {
@@ -461,6 +563,202 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
         startActivity(Intent(requireContext(), EditorActivityKt::class.java))
       }
     }
+  }
+
+  // ------------------------------------------------------------- AI phase
+
+  /** The AI status line: off without a key, or today's budget snapshot. */
+  private fun renderAiStatus() {
+    val binding = _binding ?: return
+    if (!FableAi.isConfigured()) {
+      binding.fableAiStatus.text =
+        "AI is off. Add your Gemini key in Settings → Devxyz Fable to " +
+          "unlock free AI chat in your language, image reading and fix " +
+          "proposals for real build errors. Without a key, I never make " +
+          "a network call — everything stays local."
+      return
+    }
+    val snapshot = FableAiBudget.load(requireContext().filesDir)
+    val totalQuota = FableAiBudget.QUOTA_PER_MODEL_PER_DAY * FableAiBudget.MODEL_CHAIN.size
+    val limited = FableAiBudget.MODEL_CHAIN.filter { snapshot.usage(it).rateLimited }
+    val text = StringBuilder()
+    text.append("AI is on — models: ")
+      .append(FableAiBudget.MODEL_CHAIN.joinToString(" → ")).append(".\n")
+    text.append("Today: ").append(snapshot.totalAutoFix).append(" auto-fix + ")
+      .append(snapshot.totalUser).append(" by request, of ").append(totalQuota)
+      .append(" free calls. Resets around 3:00 PM.")
+    if (limited.isNotEmpty()) {
+      text.append("\nRate-limited today: ").append(limited.joinToString(", ")).append(".")
+    }
+    binding.fableAiStatus.text = text.toString()
+  }
+
+  /** Renders the ask-Gemini card and the patch proposal card. */
+  private fun renderAiCards() {
+    val binding = _binding ?: return
+    val projectDir = if (GeneralPreferences.fableEnabled) currentProjectDir() else null
+
+    val ask = projectDir?.let { FablePendingAi.pendingFix(it.absolutePath) }
+    if (ask == null) {
+      binding.fableAiCard.visibility = View.GONE
+    } else {
+      binding.fableAiBody.text = askCardBody(ask)
+      binding.fableAiCard.visibility = View.VISIBLE
+    }
+
+    val proposal = projectDir?.let { FablePendingAi.pendingProposal(it.absolutePath) }
+    if (proposal == null) {
+      binding.fablePatchCard.visibility = View.GONE
+    } else {
+      binding.fablePatchTitle.text = getString(
+        if (proposal.kind == FableAiCallKind.AUTO_FIX) {
+          R.string.msg_fable_patch_card_title_fix
+        } else {
+          R.string.msg_fable_patch_card_title_change
+        }
+      )
+      binding.fablePatchBody.text =
+        proposal.summary + "\n\n" + FablePatcher.previewText(proposal)
+      binding.fablePatchCard.visibility = View.VISIBLE
+    }
+  }
+
+  private fun askCardBody(ask: FableAiFixRequest): String {
+    val files = ask.errors.map { it.relativePath }.distinct()
+    val listing = files.joinToString("\n") { "• $it" }
+    return "This is attempt ${ask.attempt} of 2 for this error. If you tap " +
+      "Allow, I'll send these files to Gemini together with the error " +
+      "and the end of the build output:\n$listing\n" +
+      "Nothing is sent if you tap Deny — and Gemini only proposes a fix; " +
+      "the actual change needs your approval on a separate card."
+  }
+
+  private fun onAiCardAllow() {
+    val projectDir = currentProjectDir() ?: return
+    val projectPath = projectDir.absolutePath
+    val request = FablePendingAi.consumeFix(projectPath) ?: run {
+      renderAiCards()
+      return
+    }
+    renderAiCards()
+    val filesDir = requireContext().filesDir
+    FableChatStore.append(
+      filesDir,
+      projectPath,
+      FableChatMessage(
+        FableRole.FABLE,
+        FableAi.PENDING_MARKER + " Asking Gemini for a fix, with the files you approved…",
+        System.currentTimeMillis()
+      ),
+      countUnread = false
+    )
+    renderChat()
+
+    val appContext = requireContext().applicationContext
+    val index = FableIndexStore.load(filesDir, projectPath)
+    TaskExecutor.executeAsync(
+      Callable {
+        FableAi.proposeFix(appContext, filesDir, projectDir, request, index)
+      }
+    ) { outcome ->
+      deliverAiOutcome(filesDir, projectPath, outcome)
+    }
+  }
+
+  private fun onAiCardDeny() {
+    val projectDir = currentProjectDir() ?: return
+    val projectPath = projectDir.absolutePath
+    FablePendingAi.denyFix(projectPath)
+    FableChatStore.append(
+      requireContext().filesDir,
+      projectPath,
+      FableChatMessage(
+        FableRole.FABLE,
+        "Okay — I didn't send anything to Gemini. The error is still " +
+          "there whenever you want to build again.",
+        System.currentTimeMillis()
+      ),
+      countUnread = false
+    )
+    renderAiCards()
+  }
+
+  private fun onPatchApply() {
+    val projectDir = currentProjectDir() ?: return
+    val projectPath = projectDir.absolutePath
+    val proposal = FablePendingAi.consumeProposal(projectPath) ?: run {
+      renderAiCards()
+      return
+    }
+    renderAiCards()
+    val filesDir = requireContext().filesDir
+    TaskExecutor.executeAsync(
+      Callable {
+        FablePatcher.apply(filesDir, projectDir, proposal)
+      }
+    ) { result ->
+      when (result) {
+        is FablePatcher.ApplyResult.Applied -> {
+          FableChatStore.append(
+            filesDir,
+            projectPath,
+            FableChatMessage(
+              FableRole.FABLE,
+              "Applied — I saved a backup snapshot of your files first. " +
+                "Rebuilding now: if the build passes, the fix stands; " +
+                "if it fails, I'll roll everything back automatically.",
+              System.currentTimeMillis()
+            ),
+            countUnread = false
+          )
+          FableBuildWatcher.rebuildProject(filesDir, projectPath)
+        }
+        is FablePatcher.ApplyResult.Rejected -> {
+          FableChatStore.append(
+            filesDir,
+            projectPath,
+            FableChatMessage(
+              FableRole.NOTICE,
+              "I didn't apply that change: ${result.detail}. Your files " +
+                "are untouched.",
+              System.currentTimeMillis()
+            ),
+            countUnread = false
+          )
+        }
+        null -> {
+          FableChatStore.append(
+            filesDir,
+            projectPath,
+            FableChatMessage(
+              FableRole.NOTICE,
+              "Something went wrong while applying the change — nothing " +
+                "was written.",
+              System.currentTimeMillis()
+            ),
+            countUnread = false
+          )
+        }
+      }
+      renderChat()
+    }
+  }
+
+  private fun onPatchDeny() {
+    val projectDir = currentProjectDir() ?: return
+    val projectPath = projectDir.absolutePath
+    FablePendingAi.denyProposal(projectPath)
+    FableChatStore.append(
+      requireContext().filesDir,
+      projectPath,
+      FableChatMessage(
+        FableRole.FABLE,
+        "Okay, I left your files exactly as they are.",
+        System.currentTimeMillis()
+      ),
+      countUnread = false
+    )
+    renderAiCards()
   }
 
   private fun currentProjectDir(): File? {
