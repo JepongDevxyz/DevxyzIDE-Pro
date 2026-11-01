@@ -104,10 +104,20 @@ object FableAi {
     return when (val result = callChain(filesDir, FableAiCallKind.USER_REQUESTED, system, turns, 0.5)) {
       is ChainOutcome.Failed -> Outcome.Failed(result.message)
       is ChainOutcome.Ok -> {
-        val (cleanText, proposal) = parseProposal(
+        val (cleanText, rawProposal) = parseProposal(
           result.text, projectPath, FableAiCallKind.USER_REQUESTED, null
         )
-        Outcome.Reply(withProposalNote(cleanText, proposal), proposal, result.model, result.note)
+        val proposal = groundProposal(
+          filesDir, File(projectPath), FableAiCallKind.USER_REQUESTED, null, rawProposal
+        )
+        val text = if (rawProposal != null && proposal == null) {
+          cleanText + "\n\nI checked that change against your actual files " +
+            "and it doesn't line up, so I didn't prepare a change card. " +
+            "Nothing in your project was changed."
+        } else {
+          withProposalNote(cleanText, proposal)
+        }
+        Outcome.Reply(text, proposal, result.model, result.note)
       }
     }
   }
@@ -145,10 +155,20 @@ object FableAi {
     )) {
       is ChainOutcome.Failed -> Outcome.Failed(result.message)
       is ChainOutcome.Ok -> {
-        val (cleanText, proposal) = parseProposal(
+        val (cleanText, rawProposal) = parseProposal(
           result.text, projectPath, FableAiCallKind.USER_REQUESTED, null
         )
-        Outcome.Reply(withProposalNote(cleanText, proposal), proposal, result.model, result.note)
+        val proposal = groundProposal(
+          filesDir, File(projectPath), FableAiCallKind.USER_REQUESTED, null, rawProposal
+        )
+        val text = if (rawProposal != null && proposal == null) {
+          cleanText + "\n\nI checked that change against your actual files " +
+            "and it doesn't line up, so I didn't prepare a change card. " +
+            "Nothing in your project was changed."
+        } else {
+          withProposalNote(cleanText, proposal)
+        }
+        Outcome.Reply(text, proposal, result.model, result.note)
       }
     }
   }
@@ -212,8 +232,11 @@ object FableAi {
     return when (val result = callChain(filesDir, FableAiCallKind.AUTO_FIX, system, turns, 0.2)) {
       is ChainOutcome.Failed -> Outcome.Failed(result.message)
       is ChainOutcome.Ok -> {
-        val (cleanText, proposal) = parseProposal(
+        val (cleanText, rawProposal) = parseProposal(
           result.text, request.projectPath, FableAiCallKind.AUTO_FIX, request.incidentKey
+        )
+        val proposal = groundProposal(
+          filesDir, projectDir, FableAiCallKind.AUTO_FIX, request.incidentKey, rawProposal
         )
         if (proposal == null) {
           Outcome.Reply(
@@ -293,7 +316,12 @@ object FableAi {
         "you can do here.\n" +
         "Always reply in the same language the user writes in.\n" +
         "Be honest and concrete. Never claim a fix works before a build " +
-        "has proven it — after a change is applied, the build is the judge.\n"
+        "has proven it — after a change is applied, the build is the judge.\n" +
+        "Base every diagnosis on the evidence in this conversation — the " +
+        "project map, the build output, the screenshots. If the output " +
+        "shows a step succeeded (a module configured, variants found, " +
+        "CONFIGURE SUCCESSFUL), do not claim that step is missing or " +
+        "broken.\n"
     )
     if (index != null) {
       out.append(
@@ -352,6 +380,90 @@ object FableAi {
     } catch (e: Exception) {
       ""
     }
+  }
+
+  // ------------------------------------------------------------ grounding
+
+  /**
+   * Grounds a proposal in the project's REAL files before any card is
+   * shown. In chat and vision the model never saw the target files, so
+   * its SEARCH text is a guess from a template — and a guessed SEARCH
+   * can never apply (the patcher demands an exact match, by design).
+   * Every edit whose SEARCH is absent from the actual file (or whose
+   * create-target already exists) is sent back in ONE extra call with
+   * the files' true contents, and only edits that then genuinely match
+   * survive into the card. If the extra call fails, the original
+   * proposal is returned unchanged — the patcher stays the last line of
+   * defence either way. The extra call counts in the daily budget like
+   * any other call of the same kind.
+   */
+  private fun groundProposal(
+    filesDir: File,
+    projectDir: File,
+    kind: FableAiCallKind,
+    incidentKey: String?,
+    proposal: FablePatchProposal?
+  ): FablePatchProposal? {
+    if (proposal == null || !projectDir.isDirectory) return proposal
+
+    fun editMatches(edit: FableFileEdit): Boolean {
+      val file = File(projectDir, edit.relativePath)
+      if (edit.isCreate) return !file.exists()
+      val content = try {
+        if (file.isFile) file.readText() else null
+      } catch (e: Exception) {
+        null
+      }
+      return content != null && edit.search != null && content.contains(edit.search)
+    }
+
+    val mismatched = proposal.edits.filter { !editMatches(it) }
+    if (mismatched.isEmpty()) return proposal
+    val badPaths = mismatched.map { it.relativePath }.toSet()
+
+    val prompt = StringBuilder()
+    prompt.append(
+      "Your edit blocks for the files below do NOT match the files' " +
+        "actual current contents, so they cannot be applied. Here are " +
+        "the actual contents. Re-issue edit blocks ONLY for these " +
+        "files, copying every SEARCH text character-for-character from " +
+        "the actual content below. If a change is already present or " +
+        "not needed, reply with one line saying so and no blocks.\n"
+    )
+    var charBudget = 30_000
+    for (path in badPaths) {
+      if (charBudget <= 0) break
+      val file = File(projectDir, path)
+      val content = try {
+        if (file.isFile) file.readText() else ""
+      } catch (e: Exception) {
+        ""
+      }
+      if (content.isEmpty()) continue
+      val capped = content.take(minOf(12_000, charBudget))
+      charBudget -= capped.length
+      prompt.append("\n===== ACTUAL FILE: ").append(path).append(" =====\n")
+      prompt.append(capped).append('\n')
+    }
+    val system = "You are Devxyz Fable, the built-in assistant of " +
+      "DevxyzIDE Pro. Correct the edit blocks so they match the user's " +
+      "actual files exactly, using the edit block format: FILE: <path>, " +
+      "<<<<<<< SEARCH, the exact existing text, =======, the replacement " +
+      "text, >>>>>>> REPLACE. Reply in the same language the user " +
+      "writes in."
+    val turns = listOf(
+      FableGeminiClient.Turn("user", listOf(FableGeminiClient.Part.Text(prompt.toString())))
+    )
+    val result = callChain(filesDir, kind, system, turns, 0.2)
+    if (result !is ChainOutcome.Ok) return proposal
+    val (_, regrounded) = parseProposal(result.text, proposal.projectPath, kind, incidentKey)
+    val fixedOk = (regrounded?.edits ?: emptyList())
+      .filter { it.relativePath in badPaths }
+      .filter { editMatches(it) }
+    val kept = proposal.edits.filter { editMatches(it) }
+    val merged = (kept + fixedOk).take(MAX_EDITS)
+    if (merged.isEmpty()) return null
+    return proposal.copy(edits = merged)
   }
 
   // ------------------------------------------------------------ parsing
