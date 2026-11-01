@@ -42,6 +42,9 @@ object FableGeminiClient {
   sealed class Result {
     data class Ok(val text: String) : Result()
     object RateLimited : Result()
+
+    /** HTTP 503 / "model overloaded": temporary — worth a retry later. */
+    object Overloaded : Result()
     data class Failed(val detail: String) : Result()
   }
 
@@ -78,6 +81,9 @@ object FableGeminiClient {
       val code = connection.responseCode
       if (code == 429) {
         return Result.RateLimited
+      }
+      if (code == 503) {
+        return Result.Overloaded
       }
       val stream = if (code in 200..299) connection.inputStream else connection.errorStream
       val responseText = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: ""

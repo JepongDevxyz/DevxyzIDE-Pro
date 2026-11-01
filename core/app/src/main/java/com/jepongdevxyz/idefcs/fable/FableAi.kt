@@ -289,19 +289,49 @@ object FableAi {
       if (!snapshot.isUsable(model)) {
         continue
       }
-      FableAiBudget.recordCall(filesDir, model, kind)
-      when (val result = FableGeminiClient.generate(apiKey, model, systemPrompt, turns, temperature)) {
-        is FableGeminiClient.Result.Ok -> {
-          return ChainOutcome.Ok(result.text, model, limitedNote)
+      // A 503 ("model overloaded") is a temporary spike, not a verdict:
+      // retry the same model with a short backoff (max 3 attempts)
+      // before judging the call failed. Every attempt is a real call
+      // and counts in the budget.
+      var overloaded = false
+      var attempt = 0
+      while (attempt < 3) {
+        attempt++
+        if (attempt > 1) {
+          try {
+            Thread.sleep(2_000L * attempt)
+          } catch (e: InterruptedException) {
+            break
+          }
+          FableAiBudget.recordCall(filesDir, model, kind)
         }
-        is FableGeminiClient.Result.RateLimited -> {
-          FableAiBudget.markRateLimited(filesDir, model)
-          limitedNote = "$model is rate-limited today, so I used the next model."
-          snapshot = FableAiBudget.load(filesDir)
+        when (val result = FableGeminiClient.generate(apiKey, model, systemPrompt, turns, temperature)) {
+          is FableGeminiClient.Result.Ok -> {
+            return ChainOutcome.Ok(result.text, model, limitedNote)
+          }
+          is FableGeminiClient.Result.RateLimited -> {
+            FableAiBudget.markRateLimited(filesDir, model)
+            limitedNote = "$model is rate-limited today, so I used the next model."
+            snapshot = FableAiBudget.load(filesDir)
+            overloaded = false
+            break
+          }
+          is FableGeminiClient.Result.Overloaded -> {
+            overloaded = true
+          }
+          is FableGeminiClient.Result.Failed -> {
+            return ChainOutcome.Failed("Gemini call failed ($model): ${result.detail}")
+          }
         }
-        is FableGeminiClient.Result.Failed -> {
-          return ChainOutcome.Failed("Gemini call failed ($model): ${result.detail}")
-        }
+      }
+      if (overloaded) {
+        return ChainOutcome.Failed(
+          "Gemini is overloaded right now (HTTP 503 — a temporary spike " +
+            "in demand on Google's side). I retried and it is still busy. " +
+            "Wait a minute, then tell me \"Ayusin mo\" again and I'll " +
+            "pick this problem up where we left it — you don't need to " +
+            "explain it again."
+        )
       }
     }
     return ChainOutcome.Failed(
@@ -330,7 +360,15 @@ object FableAi {
         "project map, the build output, the screenshots. If the output " +
         "shows a step succeeded (a module configured, variants found, " +
         "CONFIGURE SUCCESSFUL), do not claim that step is missing or " +
-        "broken.\n"
+        "broken.\n" +
+        "Never ask the user to paste the current contents of project " +
+        "files, and never ask them to make an edit themselves. If a file " +
+        "must change, propose it with edit blocks — the app verifies " +
+        "every block against the real file before anything is applied, " +
+        "so copy text only from files you were actually given; when you " +
+        "were not given a file a fix needs, say which file and why in " +
+        "one line and the app will fetch it for the next pass. Your job " +
+        "is to fix the problem, not to hand the work back.\n"
     )
     if (index != null) {
       out.append(
