@@ -188,20 +188,29 @@ object FableAi {
     index: KnowledgeIndex?
   ): Outcome {
     val prompt = StringBuilder()
-    prompt.append("The build of my Android project failed with these code errors:\n")
-    for (error in request.errors) {
-      prompt.append("- ").append(error.relativePath).append(":").append(error.line)
-        .append(" — ").append(error.message).append('\n')
+    if (request.errors.isNotEmpty()) {
+      prompt.append("The build of my Android project failed with these code errors:\n")
+      for (error in request.errors) {
+        prompt.append("- ").append(error.relativePath).append(":").append(error.line)
+          .append(" — ").append(error.message).append('\n')
+      }
+    } else {
+      prompt.append(
+        "The build of my Android project failed. There is no single " +
+          "code location for this failure — diagnose the root cause " +
+          "from the build output below and the project files that " +
+          "follow it.\n"
+      )
     }
     prompt.append("\nEnd of the build output:\n")
     prompt.append(request.buildTail.takeLast(6000)).append('\n')
 
     val sentFiles = linkedSetOf<String>()
     var charBudget = 36_000
-    for (error in request.errors) {
-      if (!sentFiles.add(error.relativePath)) continue
+    for (pathToSend in request.errors.map { it.relativePath } + request.contextFiles) {
+      if (!sentFiles.add(pathToSend)) continue
       if (charBudget <= 0) break
-      val file = File(projectDir, error.relativePath)
+      val file = File(projectDir, pathToSend)
       val content = try {
         if (file.isFile) file.readText() else ""
       } catch (e: Exception) {
@@ -210,7 +219,7 @@ object FableAi {
       if (content.isEmpty()) continue
       val capped = content.take(minOf(12_000, charBudget))
       charBudget -= capped.length
-      prompt.append("\n===== FILE: ").append(error.relativePath).append(" =====\n")
+      prompt.append("\n===== FILE: ").append(pathToSend).append(" =====\n")
       prompt.append(capped).append('\n')
     }
     prompt.append(

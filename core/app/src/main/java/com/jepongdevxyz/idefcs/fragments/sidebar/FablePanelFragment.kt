@@ -624,8 +624,14 @@ class FablePanelFragment : FragmentWithBinding<FragmentFablePanelBinding>(
   }
 
   private fun askCardBody(ask: FableAiFixRequest): String {
-    val files = ask.errors.map { it.relativePath }.distinct()
-    val listing = files.joinToString("\n") { "• $it" }
+    val files = (ask.errors.map { it.relativePath } + ask.contextFiles)
+      .filter { it.isNotEmpty() }
+      .distinct()
+    val listing = if (files.isEmpty()) {
+      "• (no project files — just the end of the build output)"
+    } else {
+      files.joinToString("\n") { "• $it" }
+    }
     return "This is attempt ${ask.attempt} of 2 for this error. If you tap " +
       "Allow, I'll send these files to Gemini together with the error " +
       "and the end of the build output:\n$listing\n" +
