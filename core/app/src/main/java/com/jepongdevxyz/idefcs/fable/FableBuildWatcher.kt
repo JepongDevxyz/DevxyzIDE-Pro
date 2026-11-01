@@ -223,12 +223,18 @@ object FableBuildWatcher {
   }
 
   /**
-   * The AI gate (plan §8): for a real code/resource error — concrete
-   * compiler errors with file and line, the deterministic playbook ruled
-   * out — raise the ask-Gemini card. The gate stays shut when no key is
-   * set, when today's AI budget is used up or rate-limited, or when the
-   * incident already used its 2 patch attempts. Nothing is sent anywhere
-   * here; the card is what asks.
+   * The AI gate (plan §8, WIDENED 2026-11-01 on Jepong's order — "itulad
+   * mo sayo, kahit ano na fix, kahit anong issue o problema": Fable must
+   * be able to go after ANY project problem a file change can fix, the
+   * way Spidey does). Any build failure whose class a patch could cure
+   * raises the ask-Gemini card: compile/resource errors, dependency and
+   * plugin resolution, configuration/script failures, out-of-memory
+   * (the cure is a gradle.properties edit), and unknown failures. The
+   * classes with a deterministic cure stay out: a missing SDK platform
+   * has the installer card, and a daemon lock has no file fix at all.
+   * The gate stays shut when no key is set, when today's AI budget is
+   * used up or rate-limited, or when the incident already used its 2
+   * patch attempts. Nothing is sent anywhere here; the card is what asks.
    */
   private fun maybeRaiseAiFix(
     filesDir: java.io.File,
@@ -237,11 +243,34 @@ object FableBuildWatcher {
     outputTail: String
   ) {
     try {
-      if (result.kind != FableClassifier.Kind.COMPILE_ERROR) return
-      if (result.errorLocations.isEmpty()) return
+      val aiKinds = setOf(
+        FableClassifier.Kind.COMPILE_ERROR,
+        FableClassifier.Kind.DEPENDENCY_NOT_FOUND,
+        FableClassifier.Kind.PLUGIN_RESOLUTION,
+        FableClassifier.Kind.CONFIGURE_FAILED,
+        FableClassifier.Kind.OUT_OF_MEMORY,
+        FableClassifier.Kind.UNKNOWN
+      )
+      if (result.kind !in aiKinds) return
+      if (result.kind == FableClassifier.Kind.COMPILE_ERROR &&
+        result.errorLocations.isEmpty()
+      ) return
       if (!FableAi.isConfigured()) return
       if (FableAiBudget.load(filesDir).firstUsableModel() == null) return
-      val incidentKey = FablePatcher.incidentKey(result.errorLocations)
+      val keyErrors = if (result.errorLocations.isNotEmpty()) {
+        result.errorLocations
+      } else {
+        listOf(
+          FableClassifier.ErrorLocation(
+            path = "",
+            relativePath = "",
+            line = 0,
+            message = result.kind.name + ": " +
+              result.message.lineSequence().firstOrNull().orEmpty().take(160)
+          )
+        )
+      }
+      val incidentKey = FablePatcher.incidentKey(keyErrors)
       val attempts = FablePatcher.attemptsFor(filesDir, projectPath, incidentKey)
       if (attempts >= 2) return
       val request = FableAiFixRequest(
@@ -249,7 +278,8 @@ object FableBuildWatcher {
         incidentKey = incidentKey,
         errors = result.errorLocations,
         buildTail = outputTail,
-        attempt = attempts + 1
+        attempt = attempts + 1,
+        contextFiles = contextFilesFor(result, java.io.File(projectPath))
       )
       if (!FablePendingAi.requestFix(request)) return
       FableChatStore.append(
@@ -267,6 +297,44 @@ object FableBuildWatcher {
     } catch (e: Exception) {
       // Raising the AI request is best-effort only.
     }
+  }
+
+  /**
+   * The standard evidence files for a failure class, filtered to the
+   * ones that actually exist in this project, on top of the files the
+   * build output itself named ([FableClassifier.Result.contextFiles]).
+   */
+  private fun contextFilesFor(
+    result: FableClassifier.Result,
+    projectDir: java.io.File
+  ): List<String> {
+    val candidates = linkedSetOf<String>()
+    candidates.addAll(result.contextFiles)
+    when (result.kind) {
+      FableClassifier.Kind.DEPENDENCY_NOT_FOUND,
+      FableClassifier.Kind.PLUGIN_RESOLUTION -> {
+        candidates.add("settings.gradle")
+        candidates.add("settings.gradle.kts")
+        candidates.add("build.gradle")
+        candidates.add("build.gradle.kts")
+        candidates.add("gradle.properties")
+        candidates.add("gradle/libs.versions.toml")
+        candidates.add("app/build.gradle")
+        candidates.add("app/build.gradle.kts")
+      }
+      FableClassifier.Kind.CONFIGURE_FAILED -> {
+        candidates.add("settings.gradle")
+        candidates.add("settings.gradle.kts")
+        candidates.add("gradle.properties")
+      }
+      FableClassifier.Kind.OUT_OF_MEMORY -> {
+        candidates.add("gradle.properties")
+      }
+      else -> {}
+    }
+    return candidates
+      .filter { java.io.File(projectDir, it).isFile }
+      .take(6)
   }
 
   /**

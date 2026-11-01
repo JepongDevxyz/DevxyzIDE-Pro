@@ -41,7 +41,13 @@ object FableClassifier {
     val message: String,
     val missingPlatformApi: Int? = null,
     /** Structured code/resource error locations, for the AI gate (§8). */
-    val errorLocations: List<ErrorLocation> = emptyList()
+    val errorLocations: List<ErrorLocation> = emptyList(),
+    /**
+     * Project files the output itself names (e.g. "Build file '...'
+     * line: 12"), made relative to the project root. The AI gate sends
+     * these as context for non-compile failures.
+     */
+    val contextFiles: List<String> = emptyList()
   )
 
   /**
@@ -67,6 +73,8 @@ object FableClassifier {
   private val kotlinErrorPattern = Regex("""^e: (file://)?(.+?):(\d+):(\d+) (.+)$""")
 
   private val javaErrorPattern = Regex("""^(.+?\.(?:java|kt|xml)):(\d+): error: (.+)$""")
+
+  private val buildFilePattern = Regex("""Build file '([^']+)' line: \d+""")
 
   fun classify(output: String, projectPath: String? = null): Result {
     val lines = output.lines()
@@ -190,7 +198,8 @@ object FableClassifier {
         Kind.DEPENDENCY_NOT_FOUND,
         "I noticed something: a dependency could not be found$detail. Check the " +
           "exact coordinate and version in the build file, and whether the device is online — " +
-          "a wrong version and no network are the usual causes."
+          "a wrong version and no network are the usual causes.",
+        contextFiles = mentionedBuildFiles(output, projectPath)
       )
     }
 
@@ -201,7 +210,8 @@ object FableClassifier {
         Kind.CONFIGURE_FAILED,
         "I noticed something: project configuration failed$detail. The exact " +
           "cause is in the \"What went wrong\" section of the build output — open it and " +
-          "show it to me if you want help reading it."
+          "show it to me if you want help reading it.",
+        contextFiles = mentionedBuildFiles(output, projectPath)
       )
     }
 
@@ -211,7 +221,8 @@ object FableClassifier {
         Kind.UNKNOWN,
         "I noticed something: the build failed. Gradle says:\n$whatWentWrong\n" +
           "This is not a class my local classifier knows yet. Show it to me " +
-          "in the chat and I'll help read it."
+          "in the chat and I'll help read it.",
+        contextFiles = mentionedBuildFiles(output, projectPath)
       )
     } else {
       Result(
@@ -221,6 +232,16 @@ object FableClassifier {
           "\"What went wrong\" section."
       )
     }
+  }
+
+  /** Files named by "Build file '<path>' line: N" lines, relativized. */
+  private fun mentionedBuildFiles(output: String, projectPath: String?): List<String> {
+    val found = linkedSetOf<String>()
+    for (match in buildFilePattern.findAll(output)) {
+      found.add(relativize(match.groupValues[1], projectPath))
+      if (found.size >= 4) break
+    }
+    return found.toList()
   }
 
   private fun relativize(path: String, projectPath: String?): String {

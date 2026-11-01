@@ -55,7 +55,13 @@ data class FableAiFixRequest(
   val errors: List<FableClassifier.ErrorLocation>,
   val buildTail: String,
   /** Which AI patch attempt this would be (1 or 2). */
-  val attempt: Int
+  val attempt: Int,
+  /**
+   * Extra project files sent with the request because the failure class
+   * points at them (build scripts, settings, properties, version
+   * catalog). For non-compile failures these ARE the evidence.
+   */
+  val contextFiles: List<String> = emptyList()
 )
 
 /**
