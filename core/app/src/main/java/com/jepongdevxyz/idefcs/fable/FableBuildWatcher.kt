@@ -33,10 +33,13 @@ import java.util.Collections
  * Watches Gradle builds from inside GradleBuildService. Keeps a bounded tail
  * of the build output; when a build finishes it classifies failures with
  * [FableClassifier] and posts a proactive message into the project's Fable
- * chat (which is what makes the chat head appear). It never edits project
- * code. When a build fails because an SDK platform is missing, it does NOT
- * install silently: it raises an Allow/Deny card (FablePendingInstall) and
- * only an explicit Allow runs the in-app install. Every entry point is
+ * chat (which is what makes the chat head appear). When a build fails
+ * because an SDK platform is missing, it does NOT install silently: it
+ * raises an Allow/Deny card (FablePendingInstall) and only an explicit
+ * Allow runs the in-app install. In the AI phase it also judges applied
+ * AI patches (a failed build rolls the patch back; a passing build
+ * confirms it) and raises the ask-Gemini card for real code errors —
+ * it still never edits project code on its own. Every entry point is
  * failure-proof so it can never break the build service.
  */
 object FableBuildWatcher {
@@ -100,22 +103,68 @@ object FableBuildWatcher {
       val projectPath = projectDir
 
       if (success) {
-        val wasFailed = FableChatStore.setLastBuildFailed(filesDir, projectPath, false)
-        if (wasFailed) {
+        val appliedPatch = FablePatcher.pendingVerdict(projectPath)
+        if (appliedPatch != null) {
+          // This build judged an applied AI patch — and it passed.
+          FablePatcher.confirmApplied(projectPath)
+          FableChatStore.setLastBuildFailed(filesDir, projectPath, false)
           FableChatStore.append(
             filesDir,
             projectPath,
             FableChatMessage(
               role = FableRole.FABLE,
-              text = "All good — the build passes again. Nothing is left blocking it from the last failure.",
+              text = "The build passes with my fix applied — it's confirmed " +
+                "working now, so I removed the backup snapshot.",
+              timeMillis = System.currentTimeMillis()
+            ),
+            countUnread = true
+          )
+        } else {
+          val wasFailed = FableChatStore.setLastBuildFailed(filesDir, projectPath, false)
+          if (wasFailed) {
+            FableChatStore.append(
+              filesDir,
+              projectPath,
+              FableChatMessage(
+                role = FableRole.FABLE,
+                text = "All good — the build passes again. Nothing is left blocking it from the last failure.",
+                timeMillis = System.currentTimeMillis()
+              ),
+              countUnread = true
+            )
+          }
+        }
+      } else {
+        FableChatStore.setLastBuildFailed(filesDir, projectPath, true)
+        // If this build was judging an applied AI patch, the patch did
+        // not hold: roll the user's files back before anything else.
+        var justRolledBack = false
+        val appliedPatch = FablePatcher.pendingVerdict(projectPath)
+        if (appliedPatch != null) {
+          val restored = FablePatcher.rollback(projectPath)
+          justRolledBack = true
+          FableChatStore.append(
+            filesDir,
+            projectPath,
+            FableChatMessage(
+              role = FableRole.NOTICE,
+              text = if (restored) {
+                "My fix didn't hold — the build still fails, so I rolled " +
+                  "your files back to exactly how they were before the " +
+                  "patch. Nothing is lost. Build again when you're ready " +
+                  "and I can try once more."
+              } else {
+                "My fix didn't hold and I could NOT restore every file " +
+                  "from the backup snapshot. The snapshot is kept in " +
+                  "fable/backups inside the app's files — tell me and " +
+                  "we'll sort it out."
+              },
               timeMillis = System.currentTimeMillis()
             ),
             countUnread = true
           )
         }
-      } else {
-        FableChatStore.setLastBuildFailed(filesDir, projectPath, true)
-        val result = FableClassifier.classify(outputTail)
+        val result = FableClassifier.classify(outputTail, projectPath)
         FableChatStore.append(
           filesDir,
           projectPath,
@@ -129,6 +178,9 @@ object FableBuildWatcher {
         val missingApi = result.missingPlatformApi
         if (result.kind == FableClassifier.Kind.SDK_MISSING && missingApi != null) {
           maybeAutoInstallPlatform(context, filesDir, projectPath, missingApi)
+        }
+        if (!justRolledBack) {
+          maybeRaiseAiFix(filesDir, projectPath, result, outputTail)
         }
       }
     } catch (e: Exception) {
@@ -167,6 +219,110 @@ object FableBuildWatcher {
       )
     } catch (e: Exception) {
       // Raising the request is best-effort only.
+    }
+  }
+
+  /**
+   * The AI gate (plan §8): for a real code/resource error — concrete
+   * compiler errors with file and line, the deterministic playbook ruled
+   * out — raise the ask-Gemini card. The gate stays shut when no key is
+   * set, when today's AI budget is used up or rate-limited, or when the
+   * incident already used its 2 patch attempts. Nothing is sent anywhere
+   * here; the card is what asks.
+   */
+  private fun maybeRaiseAiFix(
+    filesDir: java.io.File,
+    projectPath: String,
+    result: FableClassifier.Result,
+    outputTail: String
+  ) {
+    try {
+      if (result.kind != FableClassifier.Kind.COMPILE_ERROR) return
+      if (result.errorLocations.isEmpty()) return
+      if (!FableAi.isConfigured()) return
+      if (FableAiBudget.load(filesDir).firstUsableModel() == null) return
+      val incidentKey = FablePatcher.incidentKey(result.errorLocations)
+      val attempts = FablePatcher.attemptsFor(filesDir, projectPath, incidentKey)
+      if (attempts >= 2) return
+      val request = FableAiFixRequest(
+        projectPath = projectPath,
+        incidentKey = incidentKey,
+        errors = result.errorLocations,
+        buildTail = outputTail,
+        attempt = attempts + 1
+      )
+      if (!FablePendingAi.requestFix(request)) return
+      FableChatStore.append(
+        filesDir,
+        projectPath,
+        FableChatMessage(
+          role = FableRole.FABLE,
+          text = "I can ask Gemini for a fix for this one — there's a card " +
+            "in my chat listing the files I'd send. Nothing leaves your " +
+            "phone unless you tap Allow.",
+          timeMillis = System.currentTimeMillis()
+        ),
+        countUnread = true
+      )
+    } catch (e: Exception) {
+      // Raising the AI request is best-effort only.
+    }
+  }
+
+  /**
+   * Starts assembleDebug for a project — used after the user applies an
+   * AI patch, so the build can judge it. Reports honestly when the build
+   * service cannot be reached.
+   */
+  fun rebuildProject(filesDir: java.io.File, projectPath: String) {
+    TaskExecutor.executeAsync(
+      Callable {
+        var service: BuildService? = null
+        var tries = 0
+        while (service == null && tries < 4) {
+          try {
+            service = Lookup.getDefault().lookup(BuildService.KEY_BUILD_SERVICE)
+          } catch (e: Exception) {
+            // Service not ready yet; retry below.
+          }
+          if (service == null) {
+            tries++
+            if (tries < 4) {
+              try {
+                Thread.sleep(1500)
+              } catch (e: Exception) {
+                // Interrupted; keep going.
+              }
+            }
+          }
+        }
+        val buildService = service ?: return@Callable false
+        try {
+          buildService.executeTasks("assembleDebug")
+          true
+        } catch (e: Exception) {
+          false
+        }
+      }
+    ) { started ->
+      if (started != true) {
+        try {
+          FableChatStore.append(
+            filesDir,
+            projectPath,
+            FableChatMessage(
+              role = FableRole.NOTICE,
+              text = "The change is applied, but I couldn't start the " +
+                "rebuild myself. Tap Run to build — the result will " +
+                "judge the fix.",
+              timeMillis = System.currentTimeMillis()
+            ),
+            countUnread = true
+          )
+        } catch (e: Exception) {
+          // Reporting must never break anything.
+        }
+      }
     }
   }
 

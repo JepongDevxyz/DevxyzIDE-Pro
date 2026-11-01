@@ -18,8 +18,12 @@
 package com.jepongdevxyz.idefcs.fable
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.OpenableColumns
+import android.util.Base64
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
 import java.util.zip.ZipInputStream
@@ -56,12 +60,14 @@ object FableArchiveReader {
           summarizeText(context, uri, name, size)
         mime.startsWith("image/") ->
           "I received the image $name (${formatSize(size)}).\n" +
-            "Understanding what's inside an image arrives with the AI phase — " +
-            "for now I can only read its metadata locally."
+            "To let me actually look inside it, set your Gemini key in " +
+            "Settings → Devxyz Fable and send it again — without a key I " +
+            "can only read its metadata locally."
         mime.startsWith("video/") ->
           "I received the video $name (${formatSize(size)}).\n" +
-            "Watching and understanding video arrives with the AI phase — " +
-            "for now I can only read its metadata locally."
+            "To let me watch it (sampled frames), set your Gemini key in " +
+            "Settings → Devxyz Fable and send it again — without a key I " +
+            "can only read its metadata locally."
         else ->
           "I received the file $name (${formatSize(size)}" +
             (if (mime.isNotEmpty()) ", $mime" else "") + "). " +
@@ -70,6 +76,94 @@ object FableArchiveReader {
     } catch (e: Exception) {
       "I couldn't read $name: ${e.message ?: "an error occurred while reading it."}"
     }
+  }
+
+  /**
+   * Loads an attachment as Gemini vision parts (AI phase): the image
+   * itself for image files (capped at ~4.5 MB), or up to three sampled
+   * frames for a video. Empty when the file cannot be read as visual
+   * input. Blocking; call off the UI thread.
+   */
+  fun loadVisionImages(context: Context, uri: Uri): List<FableGeminiClient.Part.Image> {
+    val mime = context.contentResolver.getType(uri) ?: ""
+    return try {
+      when {
+        mime.startsWith("image/") -> {
+          val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            ?: return emptyList()
+          if (bytes.isEmpty() || bytes.size > 4_500_000) return emptyList()
+          listOf(
+            FableGeminiClient.Part.Image(
+              Base64.encodeToString(bytes, Base64.NO_WRAP), mime
+            )
+          )
+        }
+        mime.startsWith("video/") -> sampleVideoFrames(context, uri)
+        else -> emptyList()
+      }
+    } catch (e: Exception) {
+      emptyList()
+    }
+  }
+
+  private fun sampleVideoFrames(
+    context: Context,
+    uri: Uri
+  ): List<FableGeminiClient.Part.Image> {
+    val retriever = MediaMetadataRetriever()
+    return try {
+      retriever.setDataSource(context, uri)
+      val durationMs = retriever
+        .extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+        ?.toLongOrNull() ?: 0L
+      val timesUs = if (durationMs > 0) {
+        listOf(1_000_000L, durationMs * 500L, (durationMs - 1) * 1000L)
+          .map { it.coerceIn(0L, durationMs * 1000L) }
+          .distinct()
+      } else {
+        listOf(0L)
+      }
+      val images = mutableListOf<FableGeminiClient.Part.Image>()
+      for (timeUs in timesUs) {
+        val frame = retriever.getFrameAtTime(
+          timeUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC
+        ) ?: continue
+        val scaled = scaleDown(frame, 1024)
+        val stream = ByteArrayOutputStream()
+        scaled.compress(Bitmap.CompressFormat.JPEG, 70, stream)
+        val bytes = stream.toByteArray()
+        if (bytes.isNotEmpty() && bytes.size <= 1_500_000) {
+          images.add(
+            FableGeminiClient.Part.Image(
+              Base64.encodeToString(bytes, Base64.NO_WRAP), "image/jpeg"
+            )
+          )
+        }
+        if (scaled !== frame) scaled.recycle()
+        frame.recycle()
+      }
+      images
+    } catch (e: Exception) {
+      emptyList()
+    } finally {
+      try {
+        retriever.release()
+      } catch (e: Exception) {
+        // Nothing to clean up beyond this.
+      }
+    }
+  }
+
+  private fun scaleDown(bitmap: Bitmap, maxDimension: Int): Bitmap {
+    val largest = maxOf(bitmap.width, bitmap.height)
+    if (largest <= maxDimension) return bitmap
+    val ratio = maxDimension.toFloat() / largest.toFloat()
+    return Bitmap.createScaledBitmap(
+      bitmap,
+      (bitmap.width * ratio).toInt().coerceAtLeast(1),
+      (bitmap.height * ratio).toInt().coerceAtLeast(1),
+      true
+    )
   }
 
   private fun summarizeArchive(
