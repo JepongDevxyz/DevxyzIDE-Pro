@@ -25,6 +25,7 @@ import com.jepongdevxyz.idefcs.R
 import com.jepongdevxyz.idefcs.preferences.internal.GeneralPreferences
 import com.jepongdevxyz.idefcs.resources.R.drawable
 import com.jepongdevxyz.idefcs.resources.R.string
+import com.google.android.material.textfield.TextInputLayout
 import com.jepongdevxyz.idefcs.resources.localization.LocaleProvider
 import com.jepongdevxyz.idefcs.ui.themes.IDETheme
 import com.jepongdevxyz.idefcs.ui.themes.IThemeManager
@@ -268,6 +269,7 @@ class FableConfig(
 
   init {
     addPreference(FableEnabled())
+    addPreference(FableGeminiKey())
   }
 }
 
@@ -289,5 +291,51 @@ class FableEnabled(
     GeneralPreferences.fableEnabled = newValue as Boolean?
       ?: GeneralPreferences.fableEnabled
     return true
+  }
+}
+
+/**
+ * The user's own Gemini API key for Fable's AI phase (BYOK). The summary
+ * only ever says whether a key is set — never the key itself.
+ */
+@Parcelize
+class FableGeminiKey(
+  override val key: String = GeneralPreferences.FABLE_GEMINI_API_KEY,
+  override val title: Int = string.title_fable_gemini_key,
+  override val summary: Int? = string.msg_fable_gemini_key_summary,
+  override val icon: Int? = drawable.ic_fable
+) : EditTextPreference() {
+
+  override fun onCreatePreference(context: Context): Preference {
+    val pref = super.onCreatePreference(context)
+    pref.summary = context.getString(
+      if (GeneralPreferences.fableGeminiApiKey.isBlank()) {
+        string.msg_fable_gemini_key_unset
+      } else {
+        string.msg_fable_gemini_key_set
+      }
+    )
+    return pref
+  }
+
+  override fun onPreferenceChanged(preference: Preference, newValue: Any?): Boolean {
+    GeneralPreferences.fableGeminiApiKey = (newValue as String? ?: "").trim()
+    preference.summary = preference.context.getString(
+      if (GeneralPreferences.fableGeminiApiKey.isBlank()) {
+        string.msg_fable_gemini_key_unset
+      } else {
+        string.msg_fable_gemini_key_set
+      }
+    )
+    return true
+  }
+
+  override fun onConfigureTextInput(input: TextInputLayout) {
+    input.setHint(string.msg_fable_gemini_key_hint)
+    input.isCounterEnabled = false
+    input.editText?.setText(GeneralPreferences.fableGeminiApiKey)
+    input.editText?.inputType =
+      android.text.InputType.TYPE_CLASS_TEXT or
+        android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
   }
 }

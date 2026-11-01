@@ -36,7 +36,25 @@ object FableClassifier {
     UNKNOWN
   }
 
-  data class Result(val kind: Kind, val message: String, val missingPlatformApi: Int? = null)
+  data class Result(
+    val kind: Kind,
+    val message: String,
+    val missingPlatformApi: Int? = null,
+    /** Structured code/resource error locations, for the AI gate (§8). */
+    val errorLocations: List<ErrorLocation> = emptyList()
+  )
+
+  /**
+   * One concrete compiler/resource error. [path] is the path exactly as
+   * printed in the build output; [relativePath] is the same path made
+   * relative to the project root when the root is known.
+   */
+  data class ErrorLocation(
+    val path: String,
+    val relativePath: String,
+    val line: Int,
+    val message: String
+  )
 
   private val missingPlatformJarPattern = Regex("""platforms/android-(\d+)/android\.jar does not exist""")
 
@@ -48,9 +66,9 @@ object FableClassifier {
 
   private val kotlinErrorPattern = Regex("""^e: (file://)?(.+?):(\d+):(\d+) (.+)$""")
 
-  private val javaErrorPattern = Regex("""^(.+?\.(?:java|kt)):(\d+): error: (.+)$""")
+  private val javaErrorPattern = Regex("""^(.+?\.(?:java|kt|xml)):(\d+): error: (.+)$""")
 
-  fun classify(output: String): Result {
+  fun classify(output: String, projectPath: String? = null): Result {
     val lines = output.lines()
 
     if (output.contains("OutOfMemoryError") ||
@@ -115,26 +133,53 @@ object FableClassifier {
     }
 
     val compileErrors = mutableListOf<String>()
+    val locations = mutableListOf<ErrorLocation>()
     for (line in lines) {
       val kotlinMatch = kotlinErrorPattern.find(line.trim())
       if (kotlinMatch != null) {
-        val file = kotlinMatch.groupValues[2].substringAfterLast('/')
-        compileErrors.add("$file:${kotlinMatch.groupValues[3]} — ${kotlinMatch.groupValues[5]}")
+        val path = kotlinMatch.groupValues[2]
+        val file = path.substringAfterLast('/')
+        if (compileErrors.size < 3) {
+          compileErrors.add("$file:${kotlinMatch.groupValues[3]} — ${kotlinMatch.groupValues[5]}")
+        }
+        if (locations.size < 8) {
+          locations.add(
+            ErrorLocation(
+              path = path,
+              relativePath = relativize(path, projectPath),
+              line = kotlinMatch.groupValues[3].toIntOrNull() ?: 0,
+              message = kotlinMatch.groupValues[5]
+            )
+          )
+        }
         continue
       }
       val javaMatch = javaErrorPattern.find(line.trim())
       if (javaMatch != null) {
-        val file = javaMatch.groupValues[1].substringAfterLast('/')
-        compileErrors.add("$file:${javaMatch.groupValues[2]} — ${javaMatch.groupValues[3]}")
+        val path = javaMatch.groupValues[1]
+        val file = path.substringAfterLast('/')
+        if (compileErrors.size < 3) {
+          compileErrors.add("$file:${javaMatch.groupValues[2]} — ${javaMatch.groupValues[3]}")
+        }
+        if (locations.size < 8) {
+          locations.add(
+            ErrorLocation(
+              path = path,
+              relativePath = relativize(path, projectPath),
+              line = javaMatch.groupValues[2].toIntOrNull() ?: 0,
+              message = javaMatch.groupValues[3]
+            )
+          )
+        }
       }
-      if (compileErrors.size >= 3) break
     }
     if (compileErrors.isNotEmpty()) {
       val listing = compileErrors.joinToString("\n") { "• $it" }
       return Result(
         Kind.COMPILE_ERROR,
         "I noticed something: the build has a code error.\n$listing\n" +
-          "That is the first thing to fix — the problem is at the file and line mentioned."
+          "That is the first thing to fix — the problem is at the file and line mentioned.",
+        errorLocations = locations
       )
     }
 
@@ -165,17 +210,23 @@ object FableClassifier {
       Result(
         Kind.UNKNOWN,
         "I noticed something: the build failed. Gradle says:\n$whatWentWrong\n" +
-          "This is not a class my local classifier knows yet — AI analysis " +
-          "arrives in the next phase."
+          "This is not a class my local classifier knows yet. Show it to me " +
+          "in the chat and I'll help read it."
       )
     } else {
       Result(
         Kind.UNKNOWN,
         "I noticed something: the build failed, but there is no clear cause in the last " +
           "part of the output I saw. Open the Build output and show me the " +
-          "\"What went wrong\" na bahagi."
+          "\"What went wrong\" section."
       )
     }
+  }
+
+  private fun relativize(path: String, projectPath: String?): String {
+    if (projectPath.isNullOrEmpty()) return path
+    val prefix = projectPath.trimEnd('/') + "/"
+    return if (path.startsWith(prefix)) path.substring(prefix.length) else path
   }
 
   private fun extractWhatWentWrong(lines: List<String>): String? {

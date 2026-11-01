@@ -18,21 +18,40 @@
 package com.jepongdevxyz.idefcs.fable
 
 /**
- * Fable's local, deterministic brain for Phase 2: it answers questions about
- * the opened project straight from the [KnowledgeIndex] — no network, no API.
- * Anything beyond local knowledge gets an honest answer: the AI chat arrives
- * in the next phase and needs the user's own Gemini key in Settings.
+ * Fable's local, deterministic brain: it answers questions about the
+ * opened project straight from the [KnowledgeIndex] — no network, no API.
+ * [reply] reports whether the question was really answered locally;
+ * anything beyond local knowledge is flagged so the caller can route it
+ * to the AI phase (Gemini, with the user's own key) when one is set.
  */
 object FableLocalBrain {
 
-  fun reply(userText: String, index: KnowledgeIndex?, lastBuildFailed: Boolean): String {
-    val text = userText.lowercase()
+  /** A local answer; [answeredLocally] is false for the fallback text. */
+  data class BrainReply(val text: String, val answeredLocally: Boolean)
 
+  const val NO_INDEX_TEXT =
+    "I'm still building the project map — try again once the project map " +
+      "appears above, or tap Refresh map. For now I can answer " +
+      "questions about your project map."
+
+  const val FALLBACK_TEXT =
+    "That's beyond my local knowledge. Locally I can answer questions " +
+      "about the project map (modules, files, dependencies, Gradle/AGP/Kotlin, " +
+      "SDK, environment), the build status, and read ZIP/APK/files you attach. " +
+      "For free AI chat, add your own Gemini key in Settings → Devxyz Fable — " +
+      "with a key set I can also read images and propose fixes for real " +
+      "build errors."
+
+  fun reply(userText: String, index: KnowledgeIndex?, lastBuildFailed: Boolean): BrainReply {
     if (index == null) {
-      return "I'm still building the project map — try again once the project map " +
-        "appears above, or tap Refresh map. For now I can answer " +
-        "questions about your project map."
+      return BrainReply(NO_INDEX_TEXT, false)
     }
+    val text = answerText(userText, index, lastBuildFailed)
+    return BrainReply(text, text != FALLBACK_TEXT)
+  }
+
+  private fun answerText(userText: String, index: KnowledgeIndex, lastBuildFailed: Boolean): String {
+    val text = userText.lowercase()
 
     if (containsAny(text, "module", "modulo")) {
       val names = index.modules.take(12).joinToString(", ") { it.name }
@@ -100,18 +119,17 @@ object FableLocalBrain {
         "this project.\n" + capabilities()
     }
 
-    return "My brain is local-only in this phase, so I can answer " +
-      "questions about the project map (modules, files, dependencies, Gradle/AGP/Kotlin, " +
-      "SDK, environment), the build status, and reading ZIP/APK/files you attach. " +
-      "Free AI chat arrives in the next phase and will need your own " +
-      "Gemini key in Settings."
+    return FALLBACK_TEXT
   }
 
   private fun capabilities(): String {
-    return "What I can do right now (all local, no internet):\n" +
+    return "What I can do right now:\n" +
       "• Answer questions about the project map — modules, files, dependencies, toolchain versions\n" +
       "• Watch builds and message you right away when one fails, with the error class\n" +
       "• Read a ZIP, APK or text file you attach and summarize its contents\n" +
+      "• With your Gemini key set (Settings → Devxyz Fable): free AI chat in " +
+      "your language, reading images you send, and proposing fixes for real " +
+      "build errors — always as a card you approve first, never silently\n" +
       "Just ask — for example: \"how many modules does my project have?\""
   }
 

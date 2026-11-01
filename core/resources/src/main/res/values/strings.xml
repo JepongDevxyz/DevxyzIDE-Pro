@@ -592,4 +592,14 @@
   <string name="title_fable_home">Devxyz Fable</string>
   <string name="msg_fable_home_hint">Ask, or send a project ZIP…</string>
   <string name="msg_fable_home_empty">Hi! I\'m Devxyz Fable. Send me a project ZIP and I will import it, map it and start its first build — or ask me anything about the open project.</string>
+  <string name="title_fable_gemini_key">Gemini API key</string>
+  <string name="msg_fable_gemini_key_summary">Optional. Your own key, stored only on this device. With it, Fable can chat freely in your language, read images you send, and propose fixes for real build errors. Without it, Fable stays fully local and never makes a network call.</string>
+  <string name="msg_fable_gemini_key_hint">Paste your Gemini API key</string>
+  <string name="msg_fable_gemini_key_set">Key is set — AI chat, image reading and fix proposals are on</string>
+  <string name="msg_fable_gemini_key_unset">Not set — Fable stays fully local</string>
+  <string name="title_fable_ai">AI (Gemini)</string>
+  <string name="btn_fable_apply">Apply</string>
+  <string name="msg_fable_ai_card_title">Ask Gemini to fix this error?</string>
+  <string name="msg_fable_patch_card_title_fix">Gemini proposed a fix</string>
+  <string name="msg_fable_patch_card_title_change">Proposed change</string>
 </resources>

@@ -167,6 +167,30 @@ object FableChatStore {
     return updated
   }
 
+  /**
+   * Replaces the most recent Fable message whose text starts with
+   * [marker] — used to swap a "thinking…" bubble for the real AI reply.
+   * Returns false when no pending bubble is found.
+   */
+  @Synchronized
+  fun replacePending(
+    filesDir: File,
+    projectPath: String,
+    marker: String,
+    replacement: FableChatMessage
+  ): Boolean {
+    val current = load(filesDir, projectPath)
+    val index = current.messages.indexOfLast {
+      it.role == FableRole.FABLE && it.text.startsWith(marker)
+    }
+    if (index < 0) return false
+    val messages = current.messages.toMutableList()
+    messages[index] = replacement
+    save(filesDir, projectPath, current.copy(messages = messages))
+    notifyChanged()
+    return true
+  }
+
   @Synchronized
   fun markAllRead(filesDir: File, projectPath: String) {
     val current = load(filesDir, projectPath)

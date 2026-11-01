@@ -33,6 +33,7 @@ object GeneralPreferences {
   const val OPEN_PROJECTS = "idepref_general_autoOpenProjects"
   const val CONFIRM_PROJECT_OPEN = "idepref_general_confirmProjectOpen"
   const val FABLE_ENABLED = "idepref_fable_enabled"
+  const val FABLE_GEMINI_API_KEY = "idepref_fable_gemini_api_key"
   const val TERMINAL_USE_SYSTEM_SHELL = "idepref_general_terminalShell"
   const val LAST_OPENED_PROJECT = "ide_last_project"
 
@@ -87,6 +88,17 @@ object GeneralPreferences {
     get() = prefManager.getBoolean(FABLE_ENABLED, false)
     set(value) {
       prefManager.putBoolean(FABLE_ENABLED, value)
+    }
+
+  /**
+   * The user's own Gemini API key for Devxyz Fable's AI phase (BYOK).
+   * Empty by default: with no key, Fable never makes a network call.
+   * Stored in the app's private preferences, like every other setting.
+   */
+  var fableGeminiApiKey: String
+    get() = prefManager.getString(FABLE_GEMINI_API_KEY, "") ?: ""
+    set(value) {
+      prefManager.putString(FABLE_GEMINI_API_KEY, value)
     }
 
   var useSystemShell: Boolean
